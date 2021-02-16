@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+option go_package = "github.com/CPEN391-Team-4/backend";
+
+package route;
+
+message UsersParams {}
+
+message Users {
+  repeated User users = 1;
+}
+message User {
+  string name = 1;
+}
+
+service Route {
+  rpc GetUsers(UsersParams) returns (Users) {}
+}
