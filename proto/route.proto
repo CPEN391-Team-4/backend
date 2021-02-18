@@ -4,15 +4,22 @@ option go_package = "github.com/CPEN391-Team-4/backend";
 
 package route;
 
-message UsersParams {}
-
-message Users {
-  repeated User users = 1;
-}
 message User {
   string name = 1;
+  bool restricted = 2;
+  Image image = 3;
+}
+message Image {
+  bytes image = 1;
+  FileType fileType = 2;
 }
 
+enum FileType {
+  png = 0;
+}
+
+message Empty {}
+
 service Route {
-  rpc GetUsers(UsersParams) returns (Users) {}
+  rpc AddTrustedUser(stream User) returns (Empty) {}
 }
