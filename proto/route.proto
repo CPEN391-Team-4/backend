@@ -17,5 +17,5 @@ message Image {
 message Empty {}
 
 service Route {
-  rpc AddTrustedUser(stream User) returns (Empty) {}
+  rpc AddTrustedUser(User) returns (Empty) {}
 }
