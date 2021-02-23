@@ -18,4 +18,6 @@ message Empty {}
 
 service Route {
   rpc AddTrustedUser(stream User) returns (Empty) {}
+  rpc UpdateTrustedUser(stream User) returns (Empty) {}
+  rpc RemoveTrustedUser(User) returns (Empty) {}
 }
