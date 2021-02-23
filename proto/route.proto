@@ -7,15 +7,19 @@ package route;
 message User {
   string name = 1;
   bool restricted = 2;
-  Image image = 3;
+  Photo image = 3;
 }
-message Image {
+message Photo {
   bytes image = 1;
   string fileExtension = 2;
 }
 
-message Empty {}
+message Response {
+  int32 status = 1;
+}
 
 service Route {
-  rpc AddTrustedUser(stream User) returns (Empty) {}
+  rpc AddTrustedUser(stream User) returns (Response) {}
+  rpc RemoveTrustedUser(User) returns (Response){}
+  rpc UpdateTruestedUser(stream User) returns (Response){}
 }

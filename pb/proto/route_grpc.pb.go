@@ -19,6 +19,8 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RouteClient interface {
 	AddTrustedUser(ctx context.Context, opts ...grpc.CallOption) (Route_AddTrustedUserClient, error)
+	RemoveTrustedUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*Response, error)
+	UpdateTruestedUser(ctx context.Context, opts ...grpc.CallOption) (Route_UpdateTruestedUserClient, error)
 }
 
 type routeClient struct {
@@ -40,7 +42,7 @@ func (c *routeClient) AddTrustedUser(ctx context.Context, opts ...grpc.CallOptio
 
 type Route_AddTrustedUserClient interface {
 	Send(*User) error
-	CloseAndRecv() (*Empty, error)
+	CloseAndRecv() (*Response, error)
 	grpc.ClientStream
 }
 
@@ -52,11 +54,54 @@ func (x *routeAddTrustedUserClient) Send(m *User) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *routeAddTrustedUserClient) CloseAndRecv() (*Empty, error) {
+func (x *routeAddTrustedUserClient) CloseAndRecv() (*Response, error) {
 	if err := x.ClientStream.CloseSend(); err != nil {
 		return nil, err
 	}
-	m := new(Empty)
+	m := new(Response)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *routeClient) RemoveTrustedUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*Response, error) {
+	out := new(Response)
+	err := c.cc.Invoke(ctx, "/route.Route/RemoveTrustedUser", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *routeClient) UpdateTruestedUser(ctx context.Context, opts ...grpc.CallOption) (Route_UpdateTruestedUserClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Route_ServiceDesc.Streams[1], "/route.Route/UpdateTruestedUser", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &routeUpdateTruestedUserClient{stream}
+	return x, nil
+}
+
+type Route_UpdateTruestedUserClient interface {
+	Send(*User) error
+	CloseAndRecv() (*Response, error)
+	grpc.ClientStream
+}
+
+type routeUpdateTruestedUserClient struct {
+	grpc.ClientStream
+}
+
+func (x *routeUpdateTruestedUserClient) Send(m *User) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *routeUpdateTruestedUserClient) CloseAndRecv() (*Response, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(Response)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -68,6 +113,8 @@ func (x *routeAddTrustedUserClient) CloseAndRecv() (*Empty, error) {
 // for forward compatibility
 type RouteServer interface {
 	AddTrustedUser(Route_AddTrustedUserServer) error
+	RemoveTrustedUser(context.Context, *User) (*Response, error)
+	UpdateTruestedUser(Route_UpdateTruestedUserServer) error
 	mustEmbedUnimplementedRouteServer()
 }
 
@@ -77,6 +124,12 @@ type UnimplementedRouteServer struct {
 
 func (UnimplementedRouteServer) AddTrustedUser(Route_AddTrustedUserServer) error {
 	return status.Errorf(codes.Unimplemented, "method AddTrustedUser not implemented")
+}
+func (UnimplementedRouteServer) RemoveTrustedUser(context.Context, *User) (*Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveTrustedUser not implemented")
+}
+func (UnimplementedRouteServer) UpdateTruestedUser(Route_UpdateTruestedUserServer) error {
+	return status.Errorf(codes.Unimplemented, "method UpdateTruestedUser not implemented")
 }
 func (UnimplementedRouteServer) mustEmbedUnimplementedRouteServer() {}
 
@@ -96,7 +149,7 @@ func _Route_AddTrustedUser_Handler(srv interface{}, stream grpc.ServerStream) er
 }
 
 type Route_AddTrustedUserServer interface {
-	SendAndClose(*Empty) error
+	SendAndClose(*Response) error
 	Recv() (*User, error)
 	grpc.ServerStream
 }
@@ -105,11 +158,55 @@ type routeAddTrustedUserServer struct {
 	grpc.ServerStream
 }
 
-func (x *routeAddTrustedUserServer) SendAndClose(m *Empty) error {
+func (x *routeAddTrustedUserServer) SendAndClose(m *Response) error {
 	return x.ServerStream.SendMsg(m)
 }
 
 func (x *routeAddTrustedUserServer) Recv() (*User, error) {
+	m := new(User)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func _Route_RemoveTrustedUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(User)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RouteServer).RemoveTrustedUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/route.Route/RemoveTrustedUser",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RouteServer).RemoveTrustedUser(ctx, req.(*User))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Route_UpdateTruestedUser_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(RouteServer).UpdateTruestedUser(&routeUpdateTruestedUserServer{stream})
+}
+
+type Route_UpdateTruestedUserServer interface {
+	SendAndClose(*Response) error
+	Recv() (*User, error)
+	grpc.ServerStream
+}
+
+type routeUpdateTruestedUserServer struct {
+	grpc.ServerStream
+}
+
+func (x *routeUpdateTruestedUserServer) SendAndClose(m *Response) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *routeUpdateTruestedUserServer) Recv() (*User, error) {
 	m := new(User)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -123,11 +220,21 @@ func (x *routeAddTrustedUserServer) Recv() (*User, error) {
 var Route_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "route.Route",
 	HandlerType: (*RouteServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "RemoveTrustedUser",
+			Handler:    _Route_RemoveTrustedUser_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "AddTrustedUser",
 			Handler:       _Route_AddTrustedUser_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "UpdateTruestedUser",
+			Handler:       _Route_UpdateTruestedUser_Handler,
 			ClientStreams: true,
 		},
 	},

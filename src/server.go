@@ -2,14 +2,14 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
-	pb "github.com/CPEN391-Team-4/backend/pb/proto"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"io"
 	"log"
 	"net"
+
+	pb "github.com/CPEN391-Team-4/backend/pb/proto"
+	"google.golang.org/grpc"
 )
 
 func logError(err error) error {
@@ -23,14 +23,14 @@ type routeServer struct {
 	pb.UnimplementedRouteServer
 }
 
-func (rs *routeServer) AddTrustedUser(stream pb.Route_AddTrustedUserServer) error {
+func (rs *routeServer) AddTrustedUser(stream pb.Route_AddTrustedUserServer) (*pb.Response, error) {
 	// Referenced: dev.to/techschoolguru/
 	//             upload-file-in-chunks-with-client-streaming-grpc-golang-4loc
-
+	response := &pb.Response{}
 	imgBytes := bytes.Buffer{}
 	var user *pb.User
 	imageSize := 0
-	for chunkNum := 0;; chunkNum++ {
+	for chunkNum := 0; ; chunkNum++ {
 		log.Println("waiting to receive more data")
 
 		req, err := stream.Recv()
@@ -39,12 +39,12 @@ func (rs *routeServer) AddTrustedUser(stream pb.Route_AddTrustedUserServer) erro
 			break
 		}
 		if err != nil {
-			return logError(status.Errorf(codes.Unknown, "cannot receive chunk data: %v", err))
+			return response, nil
 		}
 
 		if chunkNum == 0 {
 			if req == nil {
-				return logError(status.Errorf(codes.Unknown, "User must be set on first request"))
+				return response, nil
 			}
 			user = req
 			log.Print("received a user", user)
@@ -58,7 +58,7 @@ func (rs *routeServer) AddTrustedUser(stream pb.Route_AddTrustedUserServer) erro
 
 		_, err = imgBytes.Write(chunk)
 		if err != nil {
-			return logError(status.Errorf(codes.Internal, "cannot write chunk data: %v", err))
+			return response, nil
 		}
 
 		imageSize += size
@@ -66,15 +66,22 @@ func (rs *routeServer) AddTrustedUser(stream pb.Route_AddTrustedUserServer) erro
 
 	log.Print(imgBytes)
 	// TODO: Log to database
-	fw := FileWriter{Directory: "./imagestore"}
-	id, err := fw.Save("." + user.GetImage().FileExtension, imgBytes)
-	if err != nil {
-		return logError(status.Errorf(codes.Internal, "Failed saving image to disk: %v", err))
-	}
+	// fw := FileWriter{Directory: "./imagestore"}
+	// id, err := fw.Save("." + user.GetImage().FileExtension, imgBytes)
+	// if err != nil {
+	// 	return logError(status.Errorf(codes.Internal, "Failed saving image to disk: %v", err))
+	// }
 
-	fmt.Println(id)
+	//fmt.Println(id)
 
-	return nil
+	return response, nil
+}
+
+func (rs *routeServer) RemoveTrustedUser(ctx context.Context, u *pb.User) pb.Response {
+
+	fmt.Println("Recieved", u)
+	response := pb.Response{}
+	return response
 }
 
 func main() {
