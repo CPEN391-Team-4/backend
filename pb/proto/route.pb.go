@@ -32,7 +32,7 @@ type User struct {
 
 	Name       string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	Restricted bool   `protobuf:"varint,2,opt,name=restricted,proto3" json:"restricted,omitempty"`
-	Image      *Image `protobuf:"bytes,3,opt,name=image,proto3" json:"image,omitempty"`
+	Image      *Photo `protobuf:"bytes,3,opt,name=image,proto3" json:"image,omitempty"`
 }
 
 func (x *User) Reset() {
@@ -81,14 +81,14 @@ func (x *User) GetRestricted() bool {
 	return false
 }
 
-func (x *User) GetImage() *Image {
+func (x *User) GetImage() *Photo {
 	if x != nil {
 		return x.Image
 	}
 	return nil
 }
 
-type Image struct {
+type Photo struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
@@ -97,8 +97,8 @@ type Image struct {
 	FileExtension string `protobuf:"bytes,2,opt,name=fileExtension,proto3" json:"fileExtension,omitempty"`
 }
 
-func (x *Image) Reset() {
-	*x = Image{}
+func (x *Photo) Reset() {
+	*x = Photo{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_proto_route_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -106,13 +106,13 @@ func (x *Image) Reset() {
 	}
 }
 
-func (x *Image) String() string {
+func (x *Photo) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Image) ProtoMessage() {}
+func (*Photo) ProtoMessage() {}
 
-func (x *Image) ProtoReflect() protoreflect.Message {
+func (x *Photo) ProtoReflect() protoreflect.Message {
 	mi := &file_proto_route_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -124,19 +124,19 @@ func (x *Image) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Image.ProtoReflect.Descriptor instead.
-func (*Image) Descriptor() ([]byte, []int) {
+// Deprecated: Use Photo.ProtoReflect.Descriptor instead.
+func (*Photo) Descriptor() ([]byte, []int) {
 	return file_proto_route_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *Image) GetImage() []byte {
+func (x *Photo) GetImage() []byte {
 	if x != nil {
 		return x.Image
 	}
 	return nil
 }
 
-func (x *Image) GetFileExtension() string {
+func (x *Photo) GetFileExtension() string {
 	if x != nil {
 		return x.FileExtension
 	}
@@ -190,9 +190,9 @@ var file_proto_route_proto_rawDesc = []byte{
 	0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x1e, 0x0a, 0x0a, 0x72, 0x65, 0x73, 0x74, 0x72, 0x69,
 	0x63, 0x74, 0x65, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x08, 0x52, 0x0a, 0x72, 0x65, 0x73, 0x74,
 	0x72, 0x69, 0x63, 0x74, 0x65, 0x64, 0x12, 0x22, 0x0a, 0x05, 0x69, 0x6d, 0x61, 0x67, 0x65, 0x18,
-	0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0c, 0x2e, 0x72, 0x6f, 0x75, 0x74, 0x65, 0x2e, 0x49, 0x6d,
-	0x61, 0x67, 0x65, 0x52, 0x05, 0x69, 0x6d, 0x61, 0x67, 0x65, 0x22, 0x43, 0x0a, 0x05, 0x49, 0x6d,
-	0x61, 0x67, 0x65, 0x12, 0x14, 0x0a, 0x05, 0x69, 0x6d, 0x61, 0x67, 0x65, 0x18, 0x01, 0x20, 0x01,
+	0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0c, 0x2e, 0x72, 0x6f, 0x75, 0x74, 0x65, 0x2e, 0x50, 0x68,
+	0x6f, 0x74, 0x6f, 0x52, 0x05, 0x69, 0x6d, 0x61, 0x67, 0x65, 0x22, 0x43, 0x0a, 0x05, 0x50, 0x68,
+	0x6f, 0x74, 0x6f, 0x12, 0x14, 0x0a, 0x05, 0x69, 0x6d, 0x61, 0x67, 0x65, 0x18, 0x01, 0x20, 0x01,
 	0x28, 0x0c, 0x52, 0x05, 0x69, 0x6d, 0x61, 0x67, 0x65, 0x12, 0x24, 0x0a, 0x0d, 0x66, 0x69, 0x6c,
 	0x65, 0x45, 0x78, 0x74, 0x65, 0x6e, 0x73, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09,
 	0x52, 0x0d, 0x66, 0x69, 0x6c, 0x65, 0x45, 0x78, 0x74, 0x65, 0x6e, 0x73, 0x69, 0x6f, 0x6e, 0x22,
@@ -220,11 +220,11 @@ func file_proto_route_proto_rawDescGZIP() []byte {
 var file_proto_route_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_proto_route_proto_goTypes = []interface{}{
 	(*User)(nil),  // 0: route.User
-	(*Image)(nil), // 1: route.Image
+	(*Photo)(nil), // 1: route.Photo
 	(*Empty)(nil), // 2: route.Empty
 }
 var file_proto_route_proto_depIdxs = []int32{
-	1, // 0: route.User.image:type_name -> route.Image
+	1, // 0: route.User.image:type_name -> route.Photo
 	0, // 1: route.Route.AddTrustedUser:input_type -> route.User
 	2, // 2: route.Route.AddTrustedUser:output_type -> route.Empty
 	2, // [2:3] is the sub-list for method output_type
@@ -253,7 +253,7 @@ func file_proto_route_proto_init() {
 			}
 		}
 		file_proto_route_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Image); i {
+			switch v := v.(*Photo); i {
 			case 0:
 				return &v.state
 			case 1:
