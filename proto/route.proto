@@ -14,12 +14,13 @@ message Photo {
   string fileExtension = 2;
 }
 
-message Response {
-  int32 status = 1;
+message Empty {
+
 }
 
 service Route {
-  rpc AddTrustedUser(stream User) returns (Response) {}
-  rpc RemoveTrustedUser(User) returns (Response){}
-  rpc UpdateTruestedUser(stream User) returns (Response){}
+  rpc AddTrustedUser(stream User) returns (Empty) {}
+  rpc UpdateTrustedUser(User) returns (stream Photo) {}
+  rpc RemoveTrustedUser(User) returns (Empty) {}
+ // rpc GetUserPhoto(User) returns(stream Photo){}
 }

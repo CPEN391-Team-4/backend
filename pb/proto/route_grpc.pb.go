@@ -19,8 +19,8 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RouteClient interface {
 	AddTrustedUser(ctx context.Context, opts ...grpc.CallOption) (Route_AddTrustedUserClient, error)
-	RemoveTrustedUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*Response, error)
-	UpdateTruestedUser(ctx context.Context, opts ...grpc.CallOption) (Route_UpdateTruestedUserClient, error)
+	UpdateTrustedUser(ctx context.Context, in *User, opts ...grpc.CallOption) (Route_UpdateTrustedUserClient, error)
+	RemoveTrustedUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*Empty, error)
 }
 
 type routeClient struct {
@@ -42,7 +42,7 @@ func (c *routeClient) AddTrustedUser(ctx context.Context, opts ...grpc.CallOptio
 
 type Route_AddTrustedUserClient interface {
 	Send(*User) error
-	CloseAndRecv() (*Response, error)
+	CloseAndRecv() (*Empty, error)
 	grpc.ClientStream
 }
 
@@ -54,19 +54,51 @@ func (x *routeAddTrustedUserClient) Send(m *User) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *routeAddTrustedUserClient) CloseAndRecv() (*Response, error) {
+func (x *routeAddTrustedUserClient) CloseAndRecv() (*Empty, error) {
 	if err := x.ClientStream.CloseSend(); err != nil {
 		return nil, err
 	}
-	m := new(Response)
+	m := new(Empty)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
 	return m, nil
 }
 
-func (c *routeClient) RemoveTrustedUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*Response, error) {
-	out := new(Response)
+func (c *routeClient) UpdateTrustedUser(ctx context.Context, in *User, opts ...grpc.CallOption) (Route_UpdateTrustedUserClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Route_ServiceDesc.Streams[1], "/route.Route/UpdateTrustedUser", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &routeUpdateTrustedUserClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Route_UpdateTrustedUserClient interface {
+	Recv() (*Photo, error)
+	grpc.ClientStream
+}
+
+type routeUpdateTrustedUserClient struct {
+	grpc.ClientStream
+}
+
+func (x *routeUpdateTrustedUserClient) Recv() (*Photo, error) {
+	m := new(Photo)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *routeClient) RemoveTrustedUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
 	err := c.cc.Invoke(ctx, "/route.Route/RemoveTrustedUser", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -74,47 +106,13 @@ func (c *routeClient) RemoveTrustedUser(ctx context.Context, in *User, opts ...g
 	return out, nil
 }
 
-func (c *routeClient) UpdateTruestedUser(ctx context.Context, opts ...grpc.CallOption) (Route_UpdateTruestedUserClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Route_ServiceDesc.Streams[1], "/route.Route/UpdateTruestedUser", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &routeUpdateTruestedUserClient{stream}
-	return x, nil
-}
-
-type Route_UpdateTruestedUserClient interface {
-	Send(*User) error
-	CloseAndRecv() (*Response, error)
-	grpc.ClientStream
-}
-
-type routeUpdateTruestedUserClient struct {
-	grpc.ClientStream
-}
-
-func (x *routeUpdateTruestedUserClient) Send(m *User) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *routeUpdateTruestedUserClient) CloseAndRecv() (*Response, error) {
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	m := new(Response)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
 // RouteServer is the server API for Route service.
 // All implementations must embed UnimplementedRouteServer
 // for forward compatibility
 type RouteServer interface {
 	AddTrustedUser(Route_AddTrustedUserServer) error
-	RemoveTrustedUser(context.Context, *User) (*Response, error)
-	UpdateTruestedUser(Route_UpdateTruestedUserServer) error
+	UpdateTrustedUser(*User, Route_UpdateTrustedUserServer) error
+	RemoveTrustedUser(context.Context, *User) (*Empty, error)
 	mustEmbedUnimplementedRouteServer()
 }
 
@@ -125,11 +123,11 @@ type UnimplementedRouteServer struct {
 func (UnimplementedRouteServer) AddTrustedUser(Route_AddTrustedUserServer) error {
 	return status.Errorf(codes.Unimplemented, "method AddTrustedUser not implemented")
 }
-func (UnimplementedRouteServer) RemoveTrustedUser(context.Context, *User) (*Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RemoveTrustedUser not implemented")
+func (UnimplementedRouteServer) UpdateTrustedUser(*User, Route_UpdateTrustedUserServer) error {
+	return status.Errorf(codes.Unimplemented, "method UpdateTrustedUser not implemented")
 }
-func (UnimplementedRouteServer) UpdateTruestedUser(Route_UpdateTruestedUserServer) error {
-	return status.Errorf(codes.Unimplemented, "method UpdateTruestedUser not implemented")
+func (UnimplementedRouteServer) RemoveTrustedUser(context.Context, *User) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveTrustedUser not implemented")
 }
 func (UnimplementedRouteServer) mustEmbedUnimplementedRouteServer() {}
 
@@ -149,7 +147,7 @@ func _Route_AddTrustedUser_Handler(srv interface{}, stream grpc.ServerStream) er
 }
 
 type Route_AddTrustedUserServer interface {
-	SendAndClose(*Response) error
+	SendAndClose(*Empty) error
 	Recv() (*User, error)
 	grpc.ServerStream
 }
@@ -158,7 +156,7 @@ type routeAddTrustedUserServer struct {
 	grpc.ServerStream
 }
 
-func (x *routeAddTrustedUserServer) SendAndClose(m *Response) error {
+func (x *routeAddTrustedUserServer) SendAndClose(m *Empty) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -168,6 +166,27 @@ func (x *routeAddTrustedUserServer) Recv() (*User, error) {
 		return nil, err
 	}
 	return m, nil
+}
+
+func _Route_UpdateTrustedUser_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(User)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(RouteServer).UpdateTrustedUser(m, &routeUpdateTrustedUserServer{stream})
+}
+
+type Route_UpdateTrustedUserServer interface {
+	Send(*Photo) error
+	grpc.ServerStream
+}
+
+type routeUpdateTrustedUserServer struct {
+	grpc.ServerStream
+}
+
+func (x *routeUpdateTrustedUserServer) Send(m *Photo) error {
+	return x.ServerStream.SendMsg(m)
 }
 
 func _Route_RemoveTrustedUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -186,32 +205,6 @@ func _Route_RemoveTrustedUser_Handler(srv interface{}, ctx context.Context, dec 
 		return srv.(RouteServer).RemoveTrustedUser(ctx, req.(*User))
 	}
 	return interceptor(ctx, in, info, handler)
-}
-
-func _Route_UpdateTruestedUser_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(RouteServer).UpdateTruestedUser(&routeUpdateTruestedUserServer{stream})
-}
-
-type Route_UpdateTruestedUserServer interface {
-	SendAndClose(*Response) error
-	Recv() (*User, error)
-	grpc.ServerStream
-}
-
-type routeUpdateTruestedUserServer struct {
-	grpc.ServerStream
-}
-
-func (x *routeUpdateTruestedUserServer) SendAndClose(m *Response) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func (x *routeUpdateTruestedUserServer) Recv() (*User, error) {
-	m := new(User)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
 }
 
 // Route_ServiceDesc is the grpc.ServiceDesc for Route service.
@@ -233,9 +226,9 @@ var Route_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 		{
-			StreamName:    "UpdateTruestedUser",
-			Handler:       _Route_UpdateTruestedUser_Handler,
-			ClientStreams: true,
+			StreamName:    "UpdateTrustedUser",
+			Handler:       _Route_UpdateTrustedUser_Handler,
+			ServerStreams: true,
 		},
 	},
 	Metadata: "proto/route.proto",
