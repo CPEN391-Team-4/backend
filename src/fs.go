@@ -31,5 +31,5 @@ func (fw *FileWriter) Save(ext string, data bytes.Buffer) (string, error) {
 		return "", fmt.Errorf("cannot write image to file: %w", err)
 	}
 
-	return idStr, nil
+	return idStr + ext, nil
 }

@@ -7,9 +7,9 @@ package route;
 message User {
   string name = 1;
   bool restricted = 2;
-  Image image = 3;
+  Photo photo = 3;
 }
-message Image {
+message Photo {
   bytes image = 1;
   string fileExtension = 2;
 }
