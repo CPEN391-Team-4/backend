@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"log"
+
 	pb "github.com/CPEN391-Team-4/backend/pb/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"io"
-	"log"
 )
 
 const USERS_TABLE = "users"
@@ -24,7 +25,6 @@ func (rs *routeServer) addUserToDB(name string, image_id string, restricted bool
 	_, err := rs.conn.Exec(sql)
 	return err
 }
-
 
 func (rs *routeServer) updateUserInDB(name string, image_id *string, restricted bool) error {
 	restrict_int := 0
@@ -45,7 +45,6 @@ func (rs *routeServer) removeUserInDB(name string) error {
 	_, err := rs.conn.Exec(sql)
 	return err
 }
-
 
 func (rs *routeServer) AddTrustedUser(stream pb.Route_AddTrustedUserServer) error {
 	// Referenced: dev.to/techschoolguru/
@@ -158,7 +157,6 @@ func (rs *routeServer) UpdateTrustedUser(stream pb.Route_UpdateTrustedUserServer
 		}
 		idUpdate = &id
 	}
-
 
 	return rs.updateUserInDB(user.GetName(), idUpdate, user.GetRestricted())
 
