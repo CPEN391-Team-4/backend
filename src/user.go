@@ -40,6 +40,25 @@ func (rs *routeServer) updateUserInDB(name string, image_id *string, restricted 
 	return err
 }
 
+func (rs *routeServer) getAllUserNameFromDB() (string, error) {
+	fmt.Println("get all user name")
+	sql := "SELECT name FROM users"
+	result, err := rs.conn.Query(sql)
+
+	if err != nil {
+		return "", err
+	}
+	userNameString := ""
+	for result.Next() {
+		var name string
+		err = result.Scan(&name)
+		userNameString += name
+		userNameString += "|"
+		fmt.Println(name)
+	}
+	return userNameString, nil
+}
+
 func (rs *routeServer) removeUserInDB(name string) error {
 	sql := fmt.Sprintf("DELETE FROM `%s` WHERE name = '%s';", USERS_TABLE, name)
 	_, err := rs.conn.Exec(sql)
@@ -98,6 +117,7 @@ func (rs *routeServer) AddTrustedUser(stream pb.Route_AddTrustedUserServer) erro
 	}
 
 	fmt.Println(id)
+	//rs.getAllUserNameFromDB()
 
 	return rs.addUserToDB(user.GetName(), id, user.GetRestricted())
 
@@ -160,6 +180,21 @@ func (rs *routeServer) UpdateTrustedUser(stream pb.Route_UpdateTrustedUserServer
 
 	return rs.updateUserInDB(user.GetName(), idUpdate, user.GetRestricted())
 
+}
+
+func (rs *routeServer) GetAllUserNames(context.Context, *pb.Empty) (*pb.UserName, error) {
+
+	nameResponse := &pb.UserName{}
+	fmt.Println("bbbbddd")
+	allUserNamesString, err := rs.getAllUserNameFromDB()
+	if err != nil {
+		fmt.Println("bvvv")
+		fmt.Println(err)
+		return nil, err
+	}
+	fmt.Println(allUserNamesString)
+	nameResponse.Usernames = allUserNamesString
+	return nameResponse, nil
 }
 
 func (rs *routeServer) RemoveTrustedUser(ctx context.Context, user *pb.User) (*pb.Empty, error) {

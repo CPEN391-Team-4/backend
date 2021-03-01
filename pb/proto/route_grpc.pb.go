@@ -21,6 +21,8 @@ type RouteClient interface {
 	AddTrustedUser(ctx context.Context, opts ...grpc.CallOption) (Route_AddTrustedUserClient, error)
 	UpdateTrustedUser(ctx context.Context, opts ...grpc.CallOption) (Route_UpdateTrustedUserClient, error)
 	RemoveTrustedUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*Empty, error)
+	//rpc GetUserPhoto(User) returns(stream Photo){}
+	GetAllUserNames(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*UserName, error)
 }
 
 type routeClient struct {
@@ -108,6 +110,15 @@ func (c *routeClient) RemoveTrustedUser(ctx context.Context, in *User, opts ...g
 	return out, nil
 }
 
+func (c *routeClient) GetAllUserNames(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*UserName, error) {
+	out := new(UserName)
+	err := c.cc.Invoke(ctx, "/route.Route/GetAllUserNames", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RouteServer is the server API for Route service.
 // All implementations must embed UnimplementedRouteServer
 // for forward compatibility
@@ -115,6 +126,8 @@ type RouteServer interface {
 	AddTrustedUser(Route_AddTrustedUserServer) error
 	UpdateTrustedUser(Route_UpdateTrustedUserServer) error
 	RemoveTrustedUser(context.Context, *User) (*Empty, error)
+	//rpc GetUserPhoto(User) returns(stream Photo){}
+	GetAllUserNames(context.Context, *Empty) (*UserName, error)
 	mustEmbedUnimplementedRouteServer()
 }
 
@@ -130,6 +143,9 @@ func (UnimplementedRouteServer) UpdateTrustedUser(Route_UpdateTrustedUserServer)
 }
 func (UnimplementedRouteServer) RemoveTrustedUser(context.Context, *User) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemoveTrustedUser not implemented")
+}
+func (UnimplementedRouteServer) GetAllUserNames(context.Context, *Empty) (*UserName, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAllUserNames not implemented")
 }
 func (UnimplementedRouteServer) mustEmbedUnimplementedRouteServer() {}
 
@@ -214,6 +230,24 @@ func _Route_RemoveTrustedUser_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Route_GetAllUserNames_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RouteServer).GetAllUserNames(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/route.Route/GetAllUserNames",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RouteServer).GetAllUserNames(ctx, req.(*Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Route_ServiceDesc is the grpc.ServiceDesc for Route service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -224,6 +258,10 @@ var Route_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RemoveTrustedUser",
 			Handler:    _Route_RemoveTrustedUser_Handler,
+		},
+		{
+			MethodName: "GetAllUserNames",
+			Handler:    _Route_GetAllUserNames_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

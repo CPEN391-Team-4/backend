@@ -2,12 +2,13 @@ package main
 
 import (
 	"database/sql"
-	pb "github.com/CPEN391-Team-4/backend/pb/proto"
-	_ "github.com/go-sql-driver/mysql"
-	"google.golang.org/grpc"
 	"log"
 	"net"
 	"os"
+
+	pb "github.com/CPEN391-Team-4/backend/pb/proto"
+	_ "github.com/go-sql-driver/mysql"
+	"google.golang.org/grpc"
 )
 
 type routeServer struct {
@@ -61,4 +62,5 @@ func main() {
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %s", err)
 	}
+
 }
