@@ -41,7 +41,6 @@ func (rs *routeServer) updateUserInDB(name string, image_id *string, restricted 
 }
 
 func (rs *routeServer) getAllUserNameFromDB() (string, error) {
-	fmt.Println("get all user name")
 	sql := "SELECT name FROM users"
 	result, err := rs.conn.Query(sql)
 
@@ -54,7 +53,7 @@ func (rs *routeServer) getAllUserNameFromDB() (string, error) {
 		err = result.Scan(&name)
 		userNameString += name
 		userNameString += "|"
-		fmt.Println(name)
+		//fmt.Println(name)
 	}
 	return userNameString, nil
 }
@@ -117,7 +116,6 @@ func (rs *routeServer) AddTrustedUser(stream pb.Route_AddTrustedUserServer) erro
 	}
 
 	fmt.Println(id)
-	//rs.getAllUserNameFromDB()
 
 	return rs.addUserToDB(user.GetName(), id, user.GetRestricted())
 
@@ -185,14 +183,12 @@ func (rs *routeServer) UpdateTrustedUser(stream pb.Route_UpdateTrustedUserServer
 func (rs *routeServer) GetAllUserNames(context.Context, *pb.Empty) (*pb.UserName, error) {
 
 	nameResponse := &pb.UserName{}
-	fmt.Println("bbbbddd")
 	allUserNamesString, err := rs.getAllUserNameFromDB()
 	if err != nil {
-		fmt.Println("bvvv")
 		fmt.Println(err)
 		return nil, err
 	}
-	fmt.Println(allUserNamesString)
+	//fmt.Println(allUserNamesString)
 	nameResponse.Usernames = allUserNamesString
 	return nameResponse, nil
 }
