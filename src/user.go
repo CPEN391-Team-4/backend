@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"log"
+	"os"
 
 	pb "github.com/CPEN391-Team-4/backend/pb/proto"
 	"google.golang.org/grpc/codes"
@@ -13,6 +15,13 @@ import (
 )
 
 const USERS_TABLE = "users"
+const READ_BUF_SIZE = 16
+
+type User struct {
+	name string
+	image_id string
+	restricted bool
+}
 
 func (rs *routeServer) addUserToDB(name string, image_id string, restricted bool) error {
 	restrict_int := 0
@@ -56,6 +65,26 @@ func (rs *routeServer) getAllUserNameFromDB() (string, error) {
 		//fmt.Println(name)
 	}
 	return userNameString, nil
+}
+
+func (rs *routeServer) getUserFromDB(user string) (User, error) {
+	sql := fmt.Sprintf("SELECT * FROM %s WHERE name = '%s';", USERS_TABLE, user)
+	results, err := rs.conn.Query(sql)
+
+	if err != nil {
+		return User{}, err
+	}
+
+	for results.Next() {
+		var u User
+		err = results.Scan(&u.name, &u.image_id, &u.restricted)
+		if err != nil {
+			return User{}, err
+		}
+		return u, nil
+	}
+
+	return User{}, status.Errorf(codes.Unknown, "No user %s found", user)
 }
 
 func (rs *routeServer) removeUserInDB(name string) error {
@@ -109,14 +138,15 @@ func (rs *routeServer) AddTrustedUser(stream pb.Route_AddTrustedUserServer) erro
 
 	}
 
-	fw := FileWriter{Directory: rs.imagestore}
-	id, err := fw.Save("."+user.GetPhoto().FileExtension, imgBytes)
-	if err != nil {
-		return logError(status.Errorf(codes.Internal, "Failed saving image to disk: %v", err))
+	var id string
+	var err error
+	if imageSize != 0 {
+		fw := FileWriter{Directory: rs.imagestore}
+		id, err = fw.Save("."+user.GetPhoto().FileExtension, imgBytes)
+		if err != nil {
+			return err
+		}
 	}
-
-	fmt.Println(id)
-
 	return rs.addUserToDB(user.GetName(), id, user.GetRestricted())
 
 }
@@ -196,4 +226,50 @@ func (rs *routeServer) GetAllUserNames(context.Context, *pb.Empty) (*pb.UserName
 func (rs *routeServer) RemoveTrustedUser(ctx context.Context, user *pb.User) (*pb.Empty, error) {
 	err := rs.removeUserInDB(user.GetName())
 	return &pb.Empty{}, err
+}
+
+func (rs *routeServer) GetUserPhoto(user *pb.User, stream pb.Route_GetUserPhotoServer) error {
+	if len(user.GetName()) == 0 {
+		return status.Errorf(codes.Unknown, "User name not provided")
+	}
+	u, err := rs.getUserFromDB(user.GetName())
+	if err != nil {
+		return err
+	}
+
+	if len(u.image_id) == 0 {
+		return nil
+	}
+
+	f, err := os.Open(rs.imagestore + "/" + u.image_id)
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
+	reader := bufio.NewReader(f)
+	buf := make([]byte, READ_BUF_SIZE)
+
+	var photo pb.Photo
+
+	sizeTotal := 0
+	for {
+		n, err := reader.Read(buf)
+		if err != nil {
+			if err != io.EOF {
+				return err
+			}
+			break
+		}
+
+		photo.Image = buf[0:n]
+		stream.Send(&photo)
+		if err != nil {
+			return err
+		}
+		sizeTotal += n
+	}
+	fmt.Println("Sent %d bytes", sizeTotal)
+	return nil
 }

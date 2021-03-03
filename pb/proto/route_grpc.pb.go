@@ -21,7 +21,7 @@ type RouteClient interface {
 	AddTrustedUser(ctx context.Context, opts ...grpc.CallOption) (Route_AddTrustedUserClient, error)
 	UpdateTrustedUser(ctx context.Context, opts ...grpc.CallOption) (Route_UpdateTrustedUserClient, error)
 	RemoveTrustedUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*Empty, error)
-	//rpc GetUserPhoto(User) returns(stream Photo){}
+	GetUserPhoto(ctx context.Context, in *User, opts ...grpc.CallOption) (Route_GetUserPhotoClient, error)
 	GetAllUserNames(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*UserName, error)
 }
 
@@ -110,6 +110,38 @@ func (c *routeClient) RemoveTrustedUser(ctx context.Context, in *User, opts ...g
 	return out, nil
 }
 
+func (c *routeClient) GetUserPhoto(ctx context.Context, in *User, opts ...grpc.CallOption) (Route_GetUserPhotoClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Route_ServiceDesc.Streams[2], "/route.Route/GetUserPhoto", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &routeGetUserPhotoClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Route_GetUserPhotoClient interface {
+	Recv() (*Photo, error)
+	grpc.ClientStream
+}
+
+type routeGetUserPhotoClient struct {
+	grpc.ClientStream
+}
+
+func (x *routeGetUserPhotoClient) Recv() (*Photo, error) {
+	m := new(Photo)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 func (c *routeClient) GetAllUserNames(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*UserName, error) {
 	out := new(UserName)
 	err := c.cc.Invoke(ctx, "/route.Route/GetAllUserNames", in, out, opts...)
@@ -126,7 +158,7 @@ type RouteServer interface {
 	AddTrustedUser(Route_AddTrustedUserServer) error
 	UpdateTrustedUser(Route_UpdateTrustedUserServer) error
 	RemoveTrustedUser(context.Context, *User) (*Empty, error)
-	//rpc GetUserPhoto(User) returns(stream Photo){}
+	GetUserPhoto(*User, Route_GetUserPhotoServer) error
 	GetAllUserNames(context.Context, *Empty) (*UserName, error)
 	mustEmbedUnimplementedRouteServer()
 }
@@ -143,6 +175,9 @@ func (UnimplementedRouteServer) UpdateTrustedUser(Route_UpdateTrustedUserServer)
 }
 func (UnimplementedRouteServer) RemoveTrustedUser(context.Context, *User) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemoveTrustedUser not implemented")
+}
+func (UnimplementedRouteServer) GetUserPhoto(*User, Route_GetUserPhotoServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetUserPhoto not implemented")
 }
 func (UnimplementedRouteServer) GetAllUserNames(context.Context, *Empty) (*UserName, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAllUserNames not implemented")
@@ -230,6 +265,27 @@ func _Route_RemoveTrustedUser_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Route_GetUserPhoto_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(User)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(RouteServer).GetUserPhoto(m, &routeGetUserPhotoServer{stream})
+}
+
+type Route_GetUserPhotoServer interface {
+	Send(*Photo) error
+	grpc.ServerStream
+}
+
+type routeGetUserPhotoServer struct {
+	grpc.ServerStream
+}
+
+func (x *routeGetUserPhotoServer) Send(m *Photo) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 func _Route_GetAllUserNames_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Empty)
 	if err := dec(in); err != nil {
@@ -274,6 +330,11 @@ var Route_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "UpdateTrustedUser",
 			Handler:       _Route_UpdateTrustedUser_Handler,
 			ClientStreams: true,
+		},
+		{
+			StreamName:    "GetUserPhoto",
+			Handler:       _Route_GetUserPhoto_Handler,
+			ServerStreams: true,
 		},
 	},
 	Metadata: "proto/route.proto",
