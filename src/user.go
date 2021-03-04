@@ -284,6 +284,6 @@ func (rs *routeServer) GetUserPhoto(user *pb.User, stream pb.Route_GetUserPhotoS
 		}
 		sizeTotal += n
 	}
-	fmt.Println("Sent %d bytes", sizeTotal)
+	fmt.Printf("Sent %d bytes", sizeTotal)
 	return nil
 }
