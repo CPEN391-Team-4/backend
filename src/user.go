@@ -103,7 +103,6 @@ func (rs *routeServer) AddTrustedUser(stream pb.Route_AddTrustedUserServer) erro
 	var user *pb.User
 	imageSize := 0
 	for chunkNum := 0; ; chunkNum++ {
-		log.Println("waiting to receive more data")
 
 		req, err := stream.Recv()
 		if err == io.EOF {
@@ -126,9 +125,6 @@ func (rs *routeServer) AddTrustedUser(stream pb.Route_AddTrustedUserServer) erro
 		if photo != nil {
 			chunk := photo.GetImage()
 			size := len(chunk)
-
-			log.Printf("received a chunk with size: %d", size)
-			log.Print(chunk)
 
 			_, err = imgBytes.Write(chunk)
 			if err != nil {
@@ -161,8 +157,6 @@ func (rs *routeServer) UpdateTrustedUser(stream pb.Route_UpdateTrustedUserServer
 	var user *pb.User
 	imageSize := 0
 	for chunkNum := 0; ; chunkNum++ {
-		log.Println("waiting to receive more data")
-
 		req, err := stream.Recv()
 		if err == io.EOF {
 			log.Print("no more data")
@@ -184,10 +178,6 @@ func (rs *routeServer) UpdateTrustedUser(stream pb.Route_UpdateTrustedUserServer
 		if photo != nil {
 			chunk := photo.GetImage()
 			size := len(chunk)
-
-			log.Printf("received a chunk with size: %d", size)
-			log.Print(chunk)
-
 			_, err = imgBytes.Write(chunk)
 			if err != nil {
 				return logError(status.Errorf(codes.Internal, "cannot write chunk data: %v", err))
