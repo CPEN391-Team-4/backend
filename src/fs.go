@@ -33,3 +33,10 @@ func (fw *FileWriter) Save(ext string, data bytes.Buffer) (string, error) {
 
 	return idStr + ext, nil
 }
+func (fw *FileWriter) Remove(id string) error {
+	err := os.Remove(fw.Directory + "/" + id)
+	if err != nil {
+		return fmt.Errorf("cannot remove file: %w", err)
+	}
+	return nil
+}

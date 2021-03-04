@@ -35,36 +35,38 @@ func (rs *routeServer) addUserToDB(name string, image_id string, restricted bool
 	return err
 }
 
-func (rs *routeServer) updateUserInDB(name string, image_id *string, restricted bool) error {
+func (rs *routeServer) updateUserInDB(name string, image_id string, restricted bool) error {
 	restrict_int := 0
 	if restricted {
 		restrict_int = 1
 	}
-	sql := "UPDATE `" + USERS_TABLE + "` SET "
-	if image_id != nil {
-		sql += "image_id = '" + *image_id + "', "
-	}
-	sql += fmt.Sprintf("restricted = '%d' WHERE name = '%s';", restrict_int, name)
+	sql := fmt.Sprintf(
+		"UPDATE `%s` SET image_id = '%s', restricted = '%d' WHERE name = '%s';",
+		USERS_TABLE, image_id, restrict_int, name)
+	fmt.Println(sql)
 	_, err := rs.conn.Exec(sql)
 	return err
 }
 
-func (rs *routeServer) getAllUserNameFromDB() (string, error) {
+func (rs *routeServer) getAllUserNameFromDB() ([]string, error) {
 	sql := "SELECT name FROM users"
 	result, err := rs.conn.Query(sql)
 
+	var users []string
+	users = make([]string, 0)
+
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	userNameString := ""
 	for result.Next() {
 		var name string
 		err = result.Scan(&name)
-		userNameString += name
-		userNameString += "|"
-		//fmt.Println(name)
+		if err != nil {
+			return nil, err
+		}
+        users = append(users, name)
 	}
-	return userNameString, nil
+	return users, nil
 }
 
 func (rs *routeServer) getUserFromDB(user string) (User, error) {
@@ -147,8 +149,8 @@ func (rs *routeServer) AddTrustedUser(stream pb.Route_AddTrustedUserServer) erro
 			return err
 		}
 	}
-	return rs.addUserToDB(user.GetName(), id, user.GetRestricted())
 
+	return rs.addUserToDB(user.GetName(), id, user.GetRestricted())
 }
 
 func (rs *routeServer) UpdateTrustedUser(stream pb.Route_UpdateTrustedUserServer) error {
@@ -196,35 +198,57 @@ func (rs *routeServer) UpdateTrustedUser(stream pb.Route_UpdateTrustedUserServer
 
 	}
 
-	var idUpdate *string = nil
+	var idUpdate string
 	if imageSize > 0 {
 		fw := FileWriter{Directory: rs.imagestore}
 		id, err := fw.Save("."+user.GetPhoto().FileExtension, imgBytes)
 		if err != nil {
 			return logError(status.Errorf(codes.Internal, "Failed saving image to disk: %v", err))
 		}
-		idUpdate = &id
+		idUpdate = id
 	}
-
+	u, err := rs.getUserFromDB(user.GetName())
+	if err != nil {
+		return err
+	}
+	if len(u.image_id) > 0 {
+		fw := FileWriter{Directory: rs.imagestore}
+		err = fw.Remove(u.image_id)
+		if err != nil {
+			return nil
+		}
+	}
 	return rs.updateUserInDB(user.GetName(), idUpdate, user.GetRestricted())
 
 }
 
-func (rs *routeServer) GetAllUserNames(context.Context, *pb.Empty) (*pb.UserName, error) {
+func (rs *routeServer) GetAllUserNames(context.Context, *pb.Empty) (*pb.UserNames, error) {
 
-	nameResponse := &pb.UserName{}
-	allUserNamesString, err := rs.getAllUserNameFromDB()
+	allUserNames, err := rs.getAllUserNameFromDB()
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
 	}
-	//fmt.Println(allUserNamesString)
-	nameResponse.Usernames = allUserNamesString
-	return nameResponse, nil
+	return &pb.UserNames{
+		Usernames: allUserNames,
+	}, nil
 }
 
 func (rs *routeServer) RemoveTrustedUser(ctx context.Context, user *pb.User) (*pb.Empty, error) {
-	err := rs.removeUserInDB(user.GetName())
+	u, err := rs.getUserFromDB(user.GetName())
+	if err != nil {
+		return &pb.Empty{}, err
+	}
+	err = rs.removeUserInDB(user.GetName())
+	if err != nil {
+		return &pb.Empty{}, err
+	}
+
+	if len(u.image_id) > 0 {
+		fw := FileWriter{Directory: rs.imagestore}
+		err = fw.Remove(u.image_id)
+	}
+
 	return &pb.Empty{}, err
 }
 

@@ -22,7 +22,7 @@ type RouteClient interface {
 	UpdateTrustedUser(ctx context.Context, opts ...grpc.CallOption) (Route_UpdateTrustedUserClient, error)
 	RemoveTrustedUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*Empty, error)
 	GetUserPhoto(ctx context.Context, in *User, opts ...grpc.CallOption) (Route_GetUserPhotoClient, error)
-	GetAllUserNames(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*UserName, error)
+	GetAllUserNames(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*UserNames, error)
 }
 
 type routeClient struct {
@@ -142,8 +142,8 @@ func (x *routeGetUserPhotoClient) Recv() (*Photo, error) {
 	return m, nil
 }
 
-func (c *routeClient) GetAllUserNames(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*UserName, error) {
-	out := new(UserName)
+func (c *routeClient) GetAllUserNames(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*UserNames, error) {
+	out := new(UserNames)
 	err := c.cc.Invoke(ctx, "/route.Route/GetAllUserNames", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -159,7 +159,7 @@ type RouteServer interface {
 	UpdateTrustedUser(Route_UpdateTrustedUserServer) error
 	RemoveTrustedUser(context.Context, *User) (*Empty, error)
 	GetUserPhoto(*User, Route_GetUserPhotoServer) error
-	GetAllUserNames(context.Context, *Empty) (*UserName, error)
+	GetAllUserNames(context.Context, *Empty) (*UserNames, error)
 	mustEmbedUnimplementedRouteServer()
 }
 
@@ -179,7 +179,7 @@ func (UnimplementedRouteServer) RemoveTrustedUser(context.Context, *User) (*Empt
 func (UnimplementedRouteServer) GetUserPhoto(*User, Route_GetUserPhotoServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetUserPhoto not implemented")
 }
-func (UnimplementedRouteServer) GetAllUserNames(context.Context, *Empty) (*UserName, error) {
+func (UnimplementedRouteServer) GetAllUserNames(context.Context, *Empty) (*UserNames, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAllUserNames not implemented")
 }
 func (UnimplementedRouteServer) mustEmbedUnimplementedRouteServer() {}

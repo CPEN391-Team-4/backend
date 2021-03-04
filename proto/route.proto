@@ -13,19 +13,15 @@ message Photo {
   bytes image = 1;
   string fileExtension = 2;
 }
-
-message UserName{
-  string usernames = 1;
+message UserNames{
+  repeated string usernames = 1;
 }
-
-message Empty {
-
-}
+message Empty {}
 
 service Route {
   rpc AddTrustedUser(stream User) returns (Empty) {}
   rpc UpdateTrustedUser(stream User) returns (Empty) {}
   rpc RemoveTrustedUser(User) returns (Empty) {}
   rpc GetUserPhoto(User) returns(stream Photo){}
-  rpc GetAllUserNames(Empty) returns (UserName){}
+  rpc GetAllUserNames(Empty) returns (UserNames){}
 }
