@@ -146,7 +146,11 @@ func (rs *routeServer) AddTrustedUser(stream pb.Route_AddTrustedUserServer) erro
 		}
 	}
 
-	return rs.addUserToDB(user.GetName(), id, user.GetRestricted())
+	err = rs.addUserToDB(user.GetName(), id, user.GetRestricted())
+	if err != nil {
+		return err
+	}
+	return stream.SendAndClose(&pb.Empty{})
 }
 
 func (rs *routeServer) UpdateTrustedUser(stream pb.Route_UpdateTrustedUserServer) error {
@@ -208,8 +212,11 @@ func (rs *routeServer) UpdateTrustedUser(stream pb.Route_UpdateTrustedUserServer
 			return nil
 		}
 	}
-	return rs.updateUserInDB(user.GetName(), idUpdate, user.GetRestricted())
-
+	err = rs.updateUserInDB(user.GetName(), idUpdate, user.GetRestricted())
+	if err != nil {
+		return err
+	}
+	return stream.SendAndClose(&pb.Empty{})
 }
 
 func (rs *routeServer) GetAllUserNames(context.Context, *pb.Empty) (*pb.UserNames, error) {
@@ -278,7 +285,7 @@ func (rs *routeServer) GetUserPhoto(user *pb.User, stream pb.Route_GetUserPhotoS
 		}
 
 		photo.Image = buf[0:n]
-		stream.Send(&photo)
+		err = stream.Send(&photo)
 		if err != nil {
 			return err
 		}

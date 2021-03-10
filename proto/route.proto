@@ -17,11 +17,19 @@ message UserNames{
   repeated string usernames = 1;
 }
 message Empty {}
+message FaceVerificationReq {
+  string user = 1;
+  Photo Photo = 3;
+}
+message FaceVerificationResp {
+  bool verified = 1;
+}
 
 service Route {
   rpc AddTrustedUser(stream User) returns (Empty) {}
   rpc UpdateTrustedUser(stream User) returns (Empty) {}
+  rpc VerifyUserFace(stream FaceVerificationReq) returns (FaceVerificationResp) {}
   rpc RemoveTrustedUser(User) returns (Empty) {}
-  rpc GetUserPhoto(User) returns(stream Photo){}
-  rpc GetAllUserNames(Empty) returns (UserNames){}
+  rpc GetUserPhoto(User) returns(stream Photo) {}
+  rpc GetAllUserNames(Empty) returns (UserNames) {}
 }

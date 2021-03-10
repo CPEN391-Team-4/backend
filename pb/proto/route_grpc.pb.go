@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion7
 type RouteClient interface {
 	AddTrustedUser(ctx context.Context, opts ...grpc.CallOption) (Route_AddTrustedUserClient, error)
 	UpdateTrustedUser(ctx context.Context, opts ...grpc.CallOption) (Route_UpdateTrustedUserClient, error)
+	VerifyUserFace(ctx context.Context, opts ...grpc.CallOption) (Route_VerifyUserFaceClient, error)
 	RemoveTrustedUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*Empty, error)
 	GetUserPhoto(ctx context.Context, in *User, opts ...grpc.CallOption) (Route_GetUserPhotoClient, error)
 	GetAllUserNames(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*UserNames, error)
@@ -101,6 +102,40 @@ func (x *routeUpdateTrustedUserClient) CloseAndRecv() (*Empty, error) {
 	return m, nil
 }
 
+func (c *routeClient) VerifyUserFace(ctx context.Context, opts ...grpc.CallOption) (Route_VerifyUserFaceClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Route_ServiceDesc.Streams[2], "/route.Route/VerifyUserFace", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &routeVerifyUserFaceClient{stream}
+	return x, nil
+}
+
+type Route_VerifyUserFaceClient interface {
+	Send(*FaceVerificationReq) error
+	CloseAndRecv() (*FaceVerificationResp, error)
+	grpc.ClientStream
+}
+
+type routeVerifyUserFaceClient struct {
+	grpc.ClientStream
+}
+
+func (x *routeVerifyUserFaceClient) Send(m *FaceVerificationReq) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *routeVerifyUserFaceClient) CloseAndRecv() (*FaceVerificationResp, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(FaceVerificationResp)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 func (c *routeClient) RemoveTrustedUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*Empty, error) {
 	out := new(Empty)
 	err := c.cc.Invoke(ctx, "/route.Route/RemoveTrustedUser", in, out, opts...)
@@ -111,7 +146,7 @@ func (c *routeClient) RemoveTrustedUser(ctx context.Context, in *User, opts ...g
 }
 
 func (c *routeClient) GetUserPhoto(ctx context.Context, in *User, opts ...grpc.CallOption) (Route_GetUserPhotoClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Route_ServiceDesc.Streams[2], "/route.Route/GetUserPhoto", opts...)
+	stream, err := c.cc.NewStream(ctx, &Route_ServiceDesc.Streams[3], "/route.Route/GetUserPhoto", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -157,6 +192,7 @@ func (c *routeClient) GetAllUserNames(ctx context.Context, in *Empty, opts ...gr
 type RouteServer interface {
 	AddTrustedUser(Route_AddTrustedUserServer) error
 	UpdateTrustedUser(Route_UpdateTrustedUserServer) error
+	VerifyUserFace(Route_VerifyUserFaceServer) error
 	RemoveTrustedUser(context.Context, *User) (*Empty, error)
 	GetUserPhoto(*User, Route_GetUserPhotoServer) error
 	GetAllUserNames(context.Context, *Empty) (*UserNames, error)
@@ -172,6 +208,9 @@ func (UnimplementedRouteServer) AddTrustedUser(Route_AddTrustedUserServer) error
 }
 func (UnimplementedRouteServer) UpdateTrustedUser(Route_UpdateTrustedUserServer) error {
 	return status.Errorf(codes.Unimplemented, "method UpdateTrustedUser not implemented")
+}
+func (UnimplementedRouteServer) VerifyUserFace(Route_VerifyUserFaceServer) error {
+	return status.Errorf(codes.Unimplemented, "method VerifyUserFace not implemented")
 }
 func (UnimplementedRouteServer) RemoveTrustedUser(context.Context, *User) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemoveTrustedUser not implemented")
@@ -241,6 +280,32 @@ func (x *routeUpdateTrustedUserServer) SendAndClose(m *Empty) error {
 
 func (x *routeUpdateTrustedUserServer) Recv() (*User, error) {
 	m := new(User)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func _Route_VerifyUserFace_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(RouteServer).VerifyUserFace(&routeVerifyUserFaceServer{stream})
+}
+
+type Route_VerifyUserFaceServer interface {
+	SendAndClose(*FaceVerificationResp) error
+	Recv() (*FaceVerificationReq, error)
+	grpc.ServerStream
+}
+
+type routeVerifyUserFaceServer struct {
+	grpc.ServerStream
+}
+
+func (x *routeVerifyUserFaceServer) SendAndClose(m *FaceVerificationResp) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *routeVerifyUserFaceServer) Recv() (*FaceVerificationReq, error) {
+	m := new(FaceVerificationReq)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -329,6 +394,11 @@ var Route_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "UpdateTrustedUser",
 			Handler:       _Route_UpdateTrustedUser_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "VerifyUserFace",
+			Handler:       _Route_VerifyUserFace_Handler,
 			ClientStreams: true,
 		},
 		{
