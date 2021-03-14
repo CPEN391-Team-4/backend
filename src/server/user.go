@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/CPEN391-Team-4/backend/src/logging"
 	"io"
 	"log"
 	"os"
@@ -48,25 +49,40 @@ func (rs *routeServer) updateUserInDB(name string, image_id string, restricted b
 	return err
 }
 
-func (rs *routeServer) getAllUserNameFromDB() ([]string, error) {
-	sql := "SELECT name FROM users"
-	result, err := rs.conn.Query(sql)
+func (rs *routeServer) getAllUsersFromDB() ([]User, error) {
+	sql := "SELECT * FROM " + USERS_TABLE
+	results, err := rs.conn.Query(sql)
 
-	var users []string
-	users = make([]string, 0)
+	var users []User
+	users = make([]User, 0)
 
 	if err != nil {
 		return nil, err
 	}
-	for result.Next() {
-		var name string
-		err = result.Scan(&name)
+	for results.Next() {
+		var u User
+		err = results.Scan(&u.name, &u.image_id, &u.restricted)
 		if err != nil {
 			return nil, err
 		}
-        users = append(users, name)
+		users = append(users, u)
 	}
 	return users, nil
+}
+
+func (rs *routeServer) getAllUserNameFromDB() ([]string, error) {
+	var userNames []string
+	userNames = make([]string, 0)
+
+	users, err := rs.getAllUsersFromDB()
+
+	if err != nil {
+		return nil, err
+	}
+	for _, u := range users {
+		userNames = append(userNames, u.name)
+	}
+	return userNames, nil
 }
 
 func (rs *routeServer) getUserFromDB(user string) (User, error) {
@@ -110,12 +126,12 @@ func (rs *routeServer) AddTrustedUser(stream pb.Route_AddTrustedUserServer) erro
 			break
 		}
 		if err != nil {
-			return logError(status.Errorf(codes.Unknown, "cannot receive chunk data: %v", err))
+			return logging.LogError(status.Errorf(codes.Unknown, "cannot receive chunk data: %v", err))
 		}
 
 		if chunkNum == 0 {
 			if req == nil {
-				return logError(status.Errorf(codes.Unknown, "User must be set on first request"))
+				return logging.LogError(status.Errorf(codes.Unknown, "User must be set on first request"))
 			}
 			user = req
 			log.Print("received a user", user)
@@ -128,7 +144,7 @@ func (rs *routeServer) AddTrustedUser(stream pb.Route_AddTrustedUserServer) erro
 
 			_, err = imgBytes.Write(chunk)
 			if err != nil {
-				return logError(status.Errorf(codes.Internal, "cannot write chunk data: %v", err))
+				return logging.LogError(status.Errorf(codes.Internal, "cannot write chunk data: %v", err))
 			}
 
 			imageSize += size
@@ -167,12 +183,12 @@ func (rs *routeServer) UpdateTrustedUser(stream pb.Route_UpdateTrustedUserServer
 			break
 		}
 		if err != nil {
-			return logError(status.Errorf(codes.Unknown, "cannot receive chunk data: %v", err))
+			return logging.LogError(status.Errorf(codes.Unknown, "cannot receive chunk data: %v", err))
 		}
 
 		if chunkNum == 0 {
 			if req == nil {
-				return logError(status.Errorf(codes.Unknown, "User must be set on first request"))
+				return logging.LogError(status.Errorf(codes.Unknown, "User must be set on first request"))
 			}
 			user = req
 			log.Print("received a user", user)
@@ -184,7 +200,7 @@ func (rs *routeServer) UpdateTrustedUser(stream pb.Route_UpdateTrustedUserServer
 			size := len(chunk)
 			_, err = imgBytes.Write(chunk)
 			if err != nil {
-				return logError(status.Errorf(codes.Internal, "cannot write chunk data: %v", err))
+				return logging.LogError(status.Errorf(codes.Internal, "cannot write chunk data: %v", err))
 			}
 
 			imageSize += size
@@ -197,7 +213,7 @@ func (rs *routeServer) UpdateTrustedUser(stream pb.Route_UpdateTrustedUserServer
 		fw := FileWriter{Directory: rs.imagestore}
 		id, err := fw.Save("."+user.GetPhoto().FileExtension, imgBytes)
 		if err != nil {
-			return logError(status.Errorf(codes.Internal, "Failed saving image to disk: %v", err))
+			return logging.LogError(status.Errorf(codes.Internal, "Failed saving image to disk: %v", err))
 		}
 		idUpdate = id
 	}

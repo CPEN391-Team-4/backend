@@ -18,11 +18,11 @@ message UserNames{
 }
 message Empty {}
 message FaceVerificationReq {
-  string user = 1;
-  Photo Photo = 3;
+  Photo Photo = 1;
 }
 message FaceVerificationResp {
-  bool verified = 1;
+  string user = 1;
+  float confidence = 2;
 }
 
 service Route {

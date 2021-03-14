@@ -4,9 +4,9 @@ import (
 	"database/sql"
 	"log"
 	"net"
-	"os"
 
 	pb "github.com/CPEN391-Team-4/backend/pb/proto"
+	"github.com/CPEN391-Team-4/backend/src/environment"
 	_ "github.com/go-sql-driver/mysql"
 	"google.golang.org/grpc"
 
@@ -22,41 +22,17 @@ type routeServer struct {
 	faceClient *face.Client
 }
 
-func logError(err error) error {
-	if err != nil {
-		log.Print(err)
-	}
-	return err
-}
-
-type env struct {
-	db_uri         string
-	db             string
-	imagestore     string
-	server_address string
-	face_subscription_key string
-	face_endpoint string
-}
-
-func (e *env) readEnv() {
-	e.db_uri = os.Getenv("DB_URI")
-	e.db = os.Getenv("DB")
-	e.imagestore = os.Getenv("IMAGESTORE")
-	e.server_address = os.Getenv("SERVER_ADDRESS")
-	e.face_subscription_key = os.Getenv("FACE_SUBSCRIPTION_KEY")
-	e.face_endpoint = os.Getenv("FACE_ENDPOINT")
-}
 
 func main() {
-	environ := env{}
-	environ.readEnv()
+	environ := environment.Env{}
+	environ.ReadEnv()
 
-	lis, err := net.Listen("tcp", environ.server_address)
+	lis, err := net.Listen("tcp", environ.ServerAddress)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	db, err := sql.Open("mysql", environ.db_uri)
+	db, err := sql.Open("mysql", environ.DbUri)
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
@@ -65,13 +41,13 @@ func main() {
 	grpcServer := grpc.NewServer()
 
 	// Client used for Detect Faces, Find Similar, and Verify examples.
-	faceClient := face.NewClient(environ.face_endpoint)
-	faceClient.Authorizer = autorest.NewCognitiveServicesAuthorizer(environ.face_subscription_key)
+	faceClient := face.NewClient(environ.FaceEndpoint)
+	faceClient.Authorizer = autorest.NewCognitiveServicesAuthorizer(environ.FaceSubscriptionKey)
 
 	rs := routeServer{
 		conn: db,
-		db: environ.db,
-		imagestore: environ.imagestore,
+		db: environ.Db,
+		imagestore: environ.Imagestore,
 		faceClient: &faceClient,
 	}
 	pb.RegisterRouteServer(grpcServer, &rs)
