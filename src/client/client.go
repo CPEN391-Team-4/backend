@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strconv"
 
 	pb "github.com/CPEN391-Team-4/backend/pb/proto"
 	"github.com/CPEN391-Team-4/backend/src/environment"
@@ -44,7 +45,7 @@ func verifyFace(client pb.RouteClient, ctx context.Context, file string) error {
 
 		photo.Image = buf[0:n]
 		req := pb.FaceVerificationReq{Photo: &photo}
-		if err := stream.Send(&req); err != nil {
+		if err := stream.Send(&req); err != nil && err != io.EOF {
 			log.Fatalf("%v.Send(%v) = %v", stream, &req, err)
 		}
 		sizeTotal += n
@@ -58,6 +59,84 @@ func verifyFace(client pb.RouteClient, ctx context.Context, file string) error {
 	return nil
 }
 
+
+func getAllUserNames(c pb.RouteClient, ctx context.Context) error {
+	users, err := c.GetAllUserNames(ctx, &pb.Empty{})
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Route summary: %v", users)
+
+	return nil
+}
+
+func addUser(client pb.RouteClient, ctx context.Context, file string, name string, restricted bool) error {
+	f, err := os.Open(file)
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
+	reader := bufio.NewReader(f)
+	buf := make([]byte, READ_BUF_SIZE)
+
+	var photo pb.Photo
+	stream, err := client.AddTrustedUser(ctx)
+	if err != nil {
+		log.Fatalf("%v.AddTrustedUser(_) = _, %v", client, err)
+	}
+	sizeTotal := 0
+	for {
+		n, err := reader.Read(buf)
+		if err != nil {
+			if err != io.EOF {
+				return err
+			}
+			break
+		}
+
+		photo.Image = buf[0:n]
+		req := pb.User{Photo: &photo, Name: name, Restricted: restricted}
+		if err := stream.Send(&req); err != nil && err != io.EOF {
+			log.Fatalf("%v.Send(%v) = %v", stream, &req, err)
+		}
+		sizeTotal += n
+	}
+	reply, err := stream.CloseAndRecv()
+	if err != nil {
+		log.Fatalf("%v.CloseAndRecv() got error %v, want %v", stream, err, nil)
+	}
+	log.Printf("Route summary: %v", reply)
+	return nil
+}
+
+func streamVideo(client pb.VideoRouteClient, ctx context.Context) error {
+	var frame pb.Frame
+	stream, err := client.StreamVideo(ctx)
+	if err != nil {
+		log.Fatalf("%v.StreamVideo(_) = _, %v", client, err)
+	}
+	for i := 0; i < 10; i++{
+		for j := 0; j < 10; j++ {
+			frame.Chunk = []byte{byte(j)}
+			frame.LastChunk = j == 9
+			frame.Number = int32(i)
+			req := pb.Video{Frame: &frame, Name: "Test"}
+			if err := stream.Send(&req); err != nil && err != io.EOF {
+				log.Fatalf("%v.Send(%v) = %v", stream, &req, err)
+			}
+		}
+	}
+	reply, err := stream.CloseAndRecv()
+	if err != nil {
+		log.Fatalf("%v.CloseAndRecv() got error %v, want %v", stream, err, nil)
+	}
+	log.Printf("Route summary: %v", reply)
+	return nil
+}
+
 func main() {
 	environ := environment.Env{}
 	environ.ReadEnv()
@@ -68,14 +147,16 @@ func main() {
 	}
 	defer conn.Close()
 	c := pb.NewRouteClient(conn)
+	svc := pb.NewVideoRouteClient(conn)
 
 	verifyFaceCmd := flag.NewFlagSet("verifyface", flag.ExitOnError)
+	addUserCmd := flag.NewFlagSet("adduser", flag.ExitOnError)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	if len(os.Args) < 2 {
-		fmt.Println("expected subcommand 'verifyface'")
+		fmt.Println("expected subcommand 'verifyface' | 'addUser' | 'listusers' | 'streamvideo")
 		os.Exit(1)
 	}
 
@@ -88,11 +169,35 @@ func main() {
 				fmt.Println("expected subcommand 'verifyface' FILE argument")
 				os.Exit(1)
 			}
-			_ = verifyFace(c, ctx, verifyFaceCmd.Args()[0])
+			err = verifyFace(c, ctx, verifyFaceCmd.Args()[0])
+		case "listusers":
+			fmt.Println("subcommand 'listusers'")
+			err = getAllUserNames(c, ctx)
+		case "adduser":
+			fmt.Println("subcommand 'addUser'")
+			if len(addUserCmd.Args()) < 3 {
+				fmt.Println("expected subcommand 'adduser' FILE, NAME, RESTRICTED argument")
+				os.Exit(1)
+			}
+			restr := addUserCmd.Arg(2)
+			resInt, err := strconv.Atoi(restr)
+			if err != nil {
+				os.Exit(1)
+			}
+			restricted := resInt != 0
+			err = addUser(c, ctx, addUserCmd.Arg(0), addUserCmd.Arg(1), restricted)
+			if err != nil {
+				os.Exit(1)
+			}
+		case "streamvideo":
+			fmt.Println("subcommand 'streamvideo'")
+			err = streamVideo(svc, ctx)
 		default:
-			fmt.Println("expected 'verifyface' subcommand")
+			fmt.Println("expected subcommand")
 			os.Exit(1)
 	}
 
-	log.Println(c, ctx)
+	if err != nil {
+		os.Exit(1)
+	}
 }

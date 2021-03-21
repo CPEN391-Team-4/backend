@@ -14,12 +14,24 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 )
 
+type Frames struct {
+	f Frame
+	current int
+}
+type Frame struct {
+	number int
+	data []byte
+}
+
 type routeServer struct {
 	pb.UnimplementedRouteServer
+	pb.UnimplementedVideoRouteServer
 	conn       *sql.DB
 	db         string
 	imagestore string
+	videostore string
 	faceClient *face.Client
+	streams    map[string][]Frames
 }
 
 
@@ -48,9 +60,11 @@ func main() {
 		conn: db,
 		db: environ.Db,
 		imagestore: environ.Imagestore,
+		videostore: environ.Videostore,
 		faceClient: &faceClient,
 	}
 	pb.RegisterRouteServer(grpcServer, &rs)
+	pb.RegisterVideoRouteServer(grpcServer, &rs)
 
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %s", err)
