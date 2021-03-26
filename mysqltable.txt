@@ -1,0 +1,7 @@
+create table history_table(
+id integer NOT NULL AUTO_INCREMENT PRIMARY KEY,
+name varchar(100) NOT NULL,
+status varchar(30) NOT NULL,
+ImageLocation varchar(100) NOT NULL,
+time DATETIME NOT NULL
+);
