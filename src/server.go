@@ -47,7 +47,7 @@ func (e *env) readEnv() {
 	e.face_endpoint = os.Getenv("FACE_ENDPOINT")
 }
 
-func main1() {
+func main() {
 	environ := env{}
 	environ.readEnv()
 

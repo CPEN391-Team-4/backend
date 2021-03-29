@@ -24,6 +24,12 @@ type RouteClient interface {
 	RemoveTrustedUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*Empty, error)
 	GetUserPhoto(ctx context.Context, in *User, opts ...grpc.CallOption) (Route_GetUserPhotoClient, error)
 	GetAllUserNames(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*UserNames, error)
+	//history record and permission
+	GetHistoryReocorded(ctx context.Context, in *Timestamp, opts ...grpc.CallOption) (Route_GetHistoryReocordedClient, error)
+	//send permission
+	GivePermission(ctx context.Context, in *Permission, opts ...grpc.CallOption) (*Empty, error)
+	//get the latest image when app gets the notification
+	GetLastestImage(ctx context.Context, in *Empty, opts ...grpc.CallOption) (Route_GetLastestImageClient, error)
 }
 
 type routeClient struct {
@@ -186,6 +192,79 @@ func (c *routeClient) GetAllUserNames(ctx context.Context, in *Empty, opts ...gr
 	return out, nil
 }
 
+func (c *routeClient) GetHistoryReocorded(ctx context.Context, in *Timestamp, opts ...grpc.CallOption) (Route_GetHistoryReocordedClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Route_ServiceDesc.Streams[4], "/route.Route/GetHistoryReocorded", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &routeGetHistoryReocordedClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Route_GetHistoryReocordedClient interface {
+	Recv() (*HistoryRecord, error)
+	grpc.ClientStream
+}
+
+type routeGetHistoryReocordedClient struct {
+	grpc.ClientStream
+}
+
+func (x *routeGetHistoryReocordedClient) Recv() (*HistoryRecord, error) {
+	m := new(HistoryRecord)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *routeClient) GivePermission(ctx context.Context, in *Permission, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/route.Route/GivePermission", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *routeClient) GetLastestImage(ctx context.Context, in *Empty, opts ...grpc.CallOption) (Route_GetLastestImageClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Route_ServiceDesc.Streams[5], "/route.Route/GetLastestImage", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &routeGetLastestImageClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Route_GetLastestImageClient interface {
+	Recv() (*Photo, error)
+	grpc.ClientStream
+}
+
+type routeGetLastestImageClient struct {
+	grpc.ClientStream
+}
+
+func (x *routeGetLastestImageClient) Recv() (*Photo, error) {
+	m := new(Photo)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // RouteServer is the server API for Route service.
 // All implementations must embed UnimplementedRouteServer
 // for forward compatibility
@@ -196,6 +275,12 @@ type RouteServer interface {
 	RemoveTrustedUser(context.Context, *User) (*Empty, error)
 	GetUserPhoto(*User, Route_GetUserPhotoServer) error
 	GetAllUserNames(context.Context, *Empty) (*UserNames, error)
+	//history record and permission
+	GetHistoryReocorded(*Timestamp, Route_GetHistoryReocordedServer) error
+	//send permission
+	GivePermission(context.Context, *Permission) (*Empty, error)
+	//get the latest image when app gets the notification
+	GetLastestImage(*Empty, Route_GetLastestImageServer) error
 	mustEmbedUnimplementedRouteServer()
 }
 
@@ -220,6 +305,15 @@ func (UnimplementedRouteServer) GetUserPhoto(*User, Route_GetUserPhotoServer) er
 }
 func (UnimplementedRouteServer) GetAllUserNames(context.Context, *Empty) (*UserNames, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAllUserNames not implemented")
+}
+func (UnimplementedRouteServer) GetHistoryReocorded(*Timestamp, Route_GetHistoryReocordedServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetHistoryReocorded not implemented")
+}
+func (UnimplementedRouteServer) GivePermission(context.Context, *Permission) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GivePermission not implemented")
+}
+func (UnimplementedRouteServer) GetLastestImage(*Empty, Route_GetLastestImageServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetLastestImage not implemented")
 }
 func (UnimplementedRouteServer) mustEmbedUnimplementedRouteServer() {}
 
@@ -369,6 +463,66 @@ func _Route_GetAllUserNames_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Route_GetHistoryReocorded_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(Timestamp)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(RouteServer).GetHistoryReocorded(m, &routeGetHistoryReocordedServer{stream})
+}
+
+type Route_GetHistoryReocordedServer interface {
+	Send(*HistoryRecord) error
+	grpc.ServerStream
+}
+
+type routeGetHistoryReocordedServer struct {
+	grpc.ServerStream
+}
+
+func (x *routeGetHistoryReocordedServer) Send(m *HistoryRecord) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _Route_GivePermission_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Permission)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RouteServer).GivePermission(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/route.Route/GivePermission",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RouteServer).GivePermission(ctx, req.(*Permission))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Route_GetLastestImage_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(Empty)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(RouteServer).GetLastestImage(m, &routeGetLastestImageServer{stream})
+}
+
+type Route_GetLastestImageServer interface {
+	Send(*Photo) error
+	grpc.ServerStream
+}
+
+type routeGetLastestImageServer struct {
+	grpc.ServerStream
+}
+
+func (x *routeGetLastestImageServer) Send(m *Photo) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // Route_ServiceDesc is the grpc.ServiceDesc for Route service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -383,6 +537,10 @@ var Route_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetAllUserNames",
 			Handler:    _Route_GetAllUserNames_Handler,
+		},
+		{
+			MethodName: "GivePermission",
+			Handler:    _Route_GivePermission_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
@@ -404,6 +562,16 @@ var Route_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "GetUserPhoto",
 			Handler:       _Route_GetUserPhoto_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "GetHistoryReocorded",
+			Handler:       _Route_GetHistoryReocorded_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "GetLastestImage",
+			Handler:       _Route_GetLastestImage_Handler,
 			ServerStreams: true,
 		},
 	},
