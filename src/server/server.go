@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"net"
+    "fmt"
 
 	pb "github.com/CPEN391-Team-4/backend/pb/proto"
 	"github.com/CPEN391-Team-4/backend/src/environment"
@@ -26,6 +27,8 @@ type routeServer struct {
 func main() {
 	environ := environment.Env{}
 	environ.ReadEnv()
+    fmt.Println(environ.DbUri)
+    fmt.Println(environ.ServerAddress)
 
 	lis, err := net.Listen("tcp", environ.ServerAddress)
 	if err != nil {
@@ -36,6 +39,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
+
 	defer db.Close()
 
 	grpcServer := grpc.NewServer()
