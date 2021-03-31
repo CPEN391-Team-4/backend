@@ -15,7 +15,10 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"time"
 )
+
+const userTimeout = 30
 
 const userToken = "cRfvd9qkRp6zhkjI8rwwF8:APA91bHO19zsujdKPIkdBxaddI-YIoqzS-UwmibR7gtiVPNzbuhbD-FL15Dbh_jBCumRisq2Slxa24iv7-EhPKXRL4KEqMz2dT_RILaYhqajhyxE6nufaL46aWNAHepITkOwFdtGwt5o"
 
@@ -174,6 +177,18 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 	_, err = notification.Send(userToken, "Detected human motion", fmt.Sprintf("user=%s", resp.User), rs.firebaseKeyfile)
 	if err != nil {
 		return logging.LogError(status.Errorf(codes.Internal, "cannot send notification: %v", err))
+	}
+
+	// Wait for response
+	select {
+		case res := <- rs.waitingUser:
+			fmt.Println("Success:", res)
+			resp.Accept = res == permAllow
+		case <-time.After(userTimeout * time.Second):
+			log.Println("timeout waiting on notification response")
+			resp.User = ""
+			resp.Confidence = 0
+			resp.Accept = false
 	}
 
 	return stream.SendAndClose(&resp)

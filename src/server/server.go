@@ -13,6 +13,12 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 )
 
+const (
+	permWaiting = 0x01
+	permAllow   = 0x02
+	permDeny    = 0x03
+)
+
 type routeServer struct {
 	pb.UnimplementedRouteServer
 	conn            *sql.DB
@@ -21,6 +27,7 @@ type routeServer struct {
 	videostore      string
 	firebaseKeyfile string
 	faceClient      *face.Client
+	waitingUser     chan int
 }
 
 
@@ -55,6 +62,7 @@ func main() {
 		firebaseKeyfile: environ.FirebaseKeyfile,
 		videostore: environ.Videostore,
 		faceClient: &faceClient,
+		waitingUser:  make(chan int, 1),
 	}
 	pb.RegisterRouteServer(grpcServer, &rs)
 

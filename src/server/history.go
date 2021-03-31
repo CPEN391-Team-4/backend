@@ -36,7 +36,7 @@ type Record struct {
 //.
 //All the grpc functions for the app to server for the history record part
 
-func (rs *routeServer) GetHistoryRecorded(timestamp *pb.Timestamp, stream pb.Route_GetHistoryReocordedServer) error {
+func (rs *routeServer) GetHistoryRecorded(timestamp *pb.Timestamp, stream pb.Route_GetHistoryRecordedServer) error {
 	var err error
 
 	records, err := rs.GetHisRecDBbyTime(timestamp.Starttime, timestamp.Endtime)
@@ -102,15 +102,15 @@ func (rs *routeServer) GivePermission(ctx context.Context, permission *pb.Permis
 
 	//update the permission status in the database
 	if permission.Permit {
-		err = rs.UpdateRecordStatusToDB(permission.Userid, "Access")
+		rs.waitingUser <- permAllow
 	} else {
-		err = rs.UpdateRecordStatusToDB(permission.Userid, "Denied")
+		rs.waitingUser <- permDeny
 	}
 
 	return nil, err
 }
 
-func (rs *routeServer) GetLatestImage(_ *pb.Empty, stream pb.Route_GetLastestImageServer) error {
+func (rs *routeServer) GetLatestImage(_ *pb.Empty, stream pb.Route_GetLatestImageServer) error {
 	var err error
 	imageid, err := rs.GetLatestRecordImageID()
 

@@ -25,11 +25,11 @@ type RouteClient interface {
 	GetUserPhoto(ctx context.Context, in *User, opts ...grpc.CallOption) (Route_GetUserPhotoClient, error)
 	GetAllUserNames(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*UserNames, error)
 	//history record and permission
-	GetHistoryReocorded(ctx context.Context, in *Timestamp, opts ...grpc.CallOption) (Route_GetHistoryReocordedClient, error)
+	GetHistoryRecorded(ctx context.Context, in *Timestamp, opts ...grpc.CallOption) (Route_GetHistoryRecordedClient, error)
 	//send permission
 	GivePermission(ctx context.Context, in *Permission, opts ...grpc.CallOption) (*Empty, error)
 	//get the latest image when app gets the notification
-	GetLastestImage(ctx context.Context, in *Empty, opts ...grpc.CallOption) (Route_GetLastestImageClient, error)
+	GetLatestImage(ctx context.Context, in *Empty, opts ...grpc.CallOption) (Route_GetLatestImageClient, error)
 }
 
 type routeClient struct {
@@ -192,12 +192,12 @@ func (c *routeClient) GetAllUserNames(ctx context.Context, in *Empty, opts ...gr
 	return out, nil
 }
 
-func (c *routeClient) GetHistoryReocorded(ctx context.Context, in *Timestamp, opts ...grpc.CallOption) (Route_GetHistoryReocordedClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Route_ServiceDesc.Streams[4], "/route.Route/GetHistoryReocorded", opts...)
+func (c *routeClient) GetHistoryRecorded(ctx context.Context, in *Timestamp, opts ...grpc.CallOption) (Route_GetHistoryRecordedClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Route_ServiceDesc.Streams[4], "/route.Route/GetHistoryRecorded", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &routeGetHistoryReocordedClient{stream}
+	x := &routeGetHistoryRecordedClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -207,16 +207,16 @@ func (c *routeClient) GetHistoryReocorded(ctx context.Context, in *Timestamp, op
 	return x, nil
 }
 
-type Route_GetHistoryReocordedClient interface {
+type Route_GetHistoryRecordedClient interface {
 	Recv() (*HistoryRecord, error)
 	grpc.ClientStream
 }
 
-type routeGetHistoryReocordedClient struct {
+type routeGetHistoryRecordedClient struct {
 	grpc.ClientStream
 }
 
-func (x *routeGetHistoryReocordedClient) Recv() (*HistoryRecord, error) {
+func (x *routeGetHistoryRecordedClient) Recv() (*HistoryRecord, error) {
 	m := new(HistoryRecord)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -233,12 +233,12 @@ func (c *routeClient) GivePermission(ctx context.Context, in *Permission, opts .
 	return out, nil
 }
 
-func (c *routeClient) GetLastestImage(ctx context.Context, in *Empty, opts ...grpc.CallOption) (Route_GetLastestImageClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Route_ServiceDesc.Streams[5], "/route.Route/GetLastestImage", opts...)
+func (c *routeClient) GetLatestImage(ctx context.Context, in *Empty, opts ...grpc.CallOption) (Route_GetLatestImageClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Route_ServiceDesc.Streams[5], "/route.Route/GetLatestImage", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &routeGetLastestImageClient{stream}
+	x := &routeGetLatestImageClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -248,16 +248,16 @@ func (c *routeClient) GetLastestImage(ctx context.Context, in *Empty, opts ...gr
 	return x, nil
 }
 
-type Route_GetLastestImageClient interface {
+type Route_GetLatestImageClient interface {
 	Recv() (*Photo, error)
 	grpc.ClientStream
 }
 
-type routeGetLastestImageClient struct {
+type routeGetLatestImageClient struct {
 	grpc.ClientStream
 }
 
-func (x *routeGetLastestImageClient) Recv() (*Photo, error) {
+func (x *routeGetLatestImageClient) Recv() (*Photo, error) {
 	m := new(Photo)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -276,11 +276,11 @@ type RouteServer interface {
 	GetUserPhoto(*User, Route_GetUserPhotoServer) error
 	GetAllUserNames(context.Context, *Empty) (*UserNames, error)
 	//history record and permission
-	GetHistoryReocorded(*Timestamp, Route_GetHistoryReocordedServer) error
+	GetHistoryRecorded(*Timestamp, Route_GetHistoryRecordedServer) error
 	//send permission
 	GivePermission(context.Context, *Permission) (*Empty, error)
 	//get the latest image when app gets the notification
-	GetLastestImage(*Empty, Route_GetLastestImageServer) error
+	GetLatestImage(*Empty, Route_GetLatestImageServer) error
 	mustEmbedUnimplementedRouteServer()
 }
 
@@ -306,14 +306,14 @@ func (UnimplementedRouteServer) GetUserPhoto(*User, Route_GetUserPhotoServer) er
 func (UnimplementedRouteServer) GetAllUserNames(context.Context, *Empty) (*UserNames, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAllUserNames not implemented")
 }
-func (UnimplementedRouteServer) GetHistoryReocorded(*Timestamp, Route_GetHistoryReocordedServer) error {
-	return status.Errorf(codes.Unimplemented, "method GetHistoryReocorded not implemented")
+func (UnimplementedRouteServer) GetHistoryRecorded(*Timestamp, Route_GetHistoryRecordedServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetHistoryRecorded not implemented")
 }
 func (UnimplementedRouteServer) GivePermission(context.Context, *Permission) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GivePermission not implemented")
 }
-func (UnimplementedRouteServer) GetLastestImage(*Empty, Route_GetLastestImageServer) error {
-	return status.Errorf(codes.Unimplemented, "method GetLastestImage not implemented")
+func (UnimplementedRouteServer) GetLatestImage(*Empty, Route_GetLatestImageServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetLatestImage not implemented")
 }
 func (UnimplementedRouteServer) mustEmbedUnimplementedRouteServer() {}
 
@@ -463,24 +463,24 @@ func _Route_GetAllUserNames_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Route_GetHistoryReocorded_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _Route_GetHistoryRecorded_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(Timestamp)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(RouteServer).GetHistoryReocorded(m, &routeGetHistoryReocordedServer{stream})
+	return srv.(RouteServer).GetHistoryRecorded(m, &routeGetHistoryRecordedServer{stream})
 }
 
-type Route_GetHistoryReocordedServer interface {
+type Route_GetHistoryRecordedServer interface {
 	Send(*HistoryRecord) error
 	grpc.ServerStream
 }
 
-type routeGetHistoryReocordedServer struct {
+type routeGetHistoryRecordedServer struct {
 	grpc.ServerStream
 }
 
-func (x *routeGetHistoryReocordedServer) Send(m *HistoryRecord) error {
+func (x *routeGetHistoryRecordedServer) Send(m *HistoryRecord) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -502,24 +502,24 @@ func _Route_GivePermission_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Route_GetLastestImage_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _Route_GetLatestImage_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(Empty)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(RouteServer).GetLastestImage(m, &routeGetLastestImageServer{stream})
+	return srv.(RouteServer).GetLatestImage(m, &routeGetLatestImageServer{stream})
 }
 
-type Route_GetLastestImageServer interface {
+type Route_GetLatestImageServer interface {
 	Send(*Photo) error
 	grpc.ServerStream
 }
 
-type routeGetLastestImageServer struct {
+type routeGetLatestImageServer struct {
 	grpc.ServerStream
 }
 
-func (x *routeGetLastestImageServer) Send(m *Photo) error {
+func (x *routeGetLatestImageServer) Send(m *Photo) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -565,13 +565,13 @@ var Route_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 		{
-			StreamName:    "GetHistoryReocorded",
-			Handler:       _Route_GetHistoryReocorded_Handler,
+			StreamName:    "GetHistoryRecorded",
+			Handler:       _Route_GetHistoryRecorded_Handler,
 			ServerStreams: true,
 		},
 		{
-			StreamName:    "GetLastestImage",
-			Handler:       _Route_GetLastestImage_Handler,
+			StreamName:    "GetLatestImage",
+			Handler:       _Route_GetLatestImage_Handler,
 			ServerStreams: true,
 		},
 	},
