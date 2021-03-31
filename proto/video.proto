@@ -16,7 +16,16 @@ message Frame {
 }
 
 message EmptyVideoResponse {}
+message PullVideoStreamReq {
+  string id = 1;
+}
+
+message PullVideoStreamResp {
+  Video video = 1;
+  bool closed = 2;
+}
 
 service VideoRoute {
   rpc StreamVideo(stream Video) returns (EmptyVideoResponse) {}
+  rpc PullVideoStream(PullVideoStreamReq) returns (stream PullVideoStreamResp) {}
 }

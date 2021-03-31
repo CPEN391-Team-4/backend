@@ -19,6 +19,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type VideoRouteClient interface {
 	StreamVideo(ctx context.Context, opts ...grpc.CallOption) (VideoRoute_StreamVideoClient, error)
+	PullVideoStream(ctx context.Context, in *PullVideoStreamReq, opts ...grpc.CallOption) (VideoRoute_PullVideoStreamClient, error)
 }
 
 type videoRouteClient struct {
@@ -63,11 +64,44 @@ func (x *videoRouteStreamVideoClient) CloseAndRecv() (*EmptyVideoResponse, error
 	return m, nil
 }
 
+func (c *videoRouteClient) PullVideoStream(ctx context.Context, in *PullVideoStreamReq, opts ...grpc.CallOption) (VideoRoute_PullVideoStreamClient, error) {
+	stream, err := c.cc.NewStream(ctx, &VideoRoute_ServiceDesc.Streams[1], "/video.VideoRoute/PullVideoStream", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &videoRoutePullVideoStreamClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type VideoRoute_PullVideoStreamClient interface {
+	Recv() (*PullVideoStreamResp, error)
+	grpc.ClientStream
+}
+
+type videoRoutePullVideoStreamClient struct {
+	grpc.ClientStream
+}
+
+func (x *videoRoutePullVideoStreamClient) Recv() (*PullVideoStreamResp, error) {
+	m := new(PullVideoStreamResp)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // VideoRouteServer is the server API for VideoRoute service.
 // All implementations must embed UnimplementedVideoRouteServer
 // for forward compatibility
 type VideoRouteServer interface {
 	StreamVideo(VideoRoute_StreamVideoServer) error
+	PullVideoStream(*PullVideoStreamReq, VideoRoute_PullVideoStreamServer) error
 	mustEmbedUnimplementedVideoRouteServer()
 }
 
@@ -77,6 +111,9 @@ type UnimplementedVideoRouteServer struct {
 
 func (UnimplementedVideoRouteServer) StreamVideo(VideoRoute_StreamVideoServer) error {
 	return status.Errorf(codes.Unimplemented, "method StreamVideo not implemented")
+}
+func (UnimplementedVideoRouteServer) PullVideoStream(*PullVideoStreamReq, VideoRoute_PullVideoStreamServer) error {
+	return status.Errorf(codes.Unimplemented, "method PullVideoStream not implemented")
 }
 func (UnimplementedVideoRouteServer) mustEmbedUnimplementedVideoRouteServer() {}
 
@@ -117,6 +154,27 @@ func (x *videoRouteStreamVideoServer) Recv() (*Video, error) {
 	return m, nil
 }
 
+func _VideoRoute_PullVideoStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(PullVideoStreamReq)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(VideoRouteServer).PullVideoStream(m, &videoRoutePullVideoStreamServer{stream})
+}
+
+type VideoRoute_PullVideoStreamServer interface {
+	Send(*PullVideoStreamResp) error
+	grpc.ServerStream
+}
+
+type videoRoutePullVideoStreamServer struct {
+	grpc.ServerStream
+}
+
+func (x *videoRoutePullVideoStreamServer) Send(m *PullVideoStreamResp) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // VideoRoute_ServiceDesc is the grpc.ServiceDesc for VideoRoute service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -129,6 +187,11 @@ var VideoRoute_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "StreamVideo",
 			Handler:       _VideoRoute_StreamVideo_Handler,
 			ClientStreams: true,
+		},
+		{
+			StreamName:    "PullVideoStream",
+			Handler:       _VideoRoute_PullVideoStream_Handler,
+			ServerStreams: true,
 		},
 	},
 	Metadata: "proto/video.proto",

@@ -9,7 +9,16 @@ import (
 	"google.golang.org/grpc/status"
 	"io"
 	"log"
+	"sync"
 )
+
+const DEFAULT_ID = "default"
+const VIDEOSTREAM_SIZE = 16
+
+type VideoStreams struct {
+	sync.Mutex
+	stream map[string]chan Frame
+}
 
 func (rs *routeServer) StreamVideo(stream pb.VideoRoute_StreamVideoServer) error {
 
@@ -19,6 +28,17 @@ func (rs *routeServer) StreamVideo(stream pb.VideoRoute_StreamVideoServer) error
 	fw := videostore.FileWriter{Directory: rs.videostore}
 	startFrame := true
 	var dirId string
+
+	rs.streams.Lock()
+	if val, ok := rs.streams.stream[DEFAULT_ID]; !ok {
+		if val != nil {
+			rs.streams.Unlock()
+			return status.Errorf(codes.Unknown, "Stream id=%s is already live", DEFAULT_ID)
+		}
+		rs.streams.stream[DEFAULT_ID] = make(chan Frame, VIDEOSTREAM_SIZE)
+	}
+	rs.streams.Unlock()
+
 	for chunkNum := 0; ; chunkNum++ {
 		req, err := stream.Recv()
 		if err == io.EOF {
@@ -57,13 +77,65 @@ func (rs *routeServer) StreamVideo(stream pb.VideoRoute_StreamVideoServer) error
 				return logging.LogError(status.Errorf(codes.Internal, "cannot write chunk data: %v", err))
 			}
 
+			rs.streams.Lock()
+			rs.streams.stream[DEFAULT_ID] <- Frame{
+				number: int(frameNumber),
+				data:   imgBytes.Bytes(),
+				lastChunk: lastChunk,
+			}
+			rs.streams.Unlock()
+
 			if lastChunk {
 				startFrame = true
 				imgBytes = bytes.Buffer{}
 			}
 		}
-
 	}
+	rs.streams.Lock()
+	rs.streams.stream[DEFAULT_ID] = nil
+	rs.streams.Unlock()
 
 	return stream.SendAndClose(&pb.EmptyVideoResponse{})
+}
+
+func (rs *routeServer) PullVideoStream(req *pb.PullVideoStreamReq, stream pb.VideoRoute_PullVideoStreamServer) error {
+	rs.streams.Lock()
+	val, ok := rs.streams.stream[DEFAULT_ID]
+	if !ok {
+		rs.streams.Unlock()
+		return status.Errorf(codes.Unknown, "Stream id=%s doesn't exist", DEFAULT_ID)
+	}
+	if val == nil {
+		rs.streams.Unlock()
+		return status.Errorf(codes.Unknown, "Stream id=%s is not live", DEFAULT_ID)
+	}
+	rs.streams.Unlock()
+	for {
+		rs.streams.Lock()
+		val, ok := rs.streams.stream[DEFAULT_ID]
+		if !ok || val == nil {
+			err := stream.Send(&pb.PullVideoStreamResp{
+				Closed: true,
+			})
+			rs.streams.Unlock()
+			return err
+		}
+		f := <- rs.streams.stream[DEFAULT_ID]
+		err := stream.Send(&pb.PullVideoStreamResp{
+			Video: &pb.Video{
+				Frame:    &pb.Frame{
+					Number:    int32(f.number),
+					LastChunk: f.lastChunk,
+					Chunk:     f.data,
+				},
+			},
+			Closed: false,
+		})
+		rs.streams.Unlock()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

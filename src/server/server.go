@@ -2,25 +2,21 @@ package main
 
 import (
 	"database/sql"
-	"log"
-	"net"
-
 	pb "github.com/CPEN391-Team-4/backend/pb/proto"
 	"github.com/CPEN391-Team-4/backend/src/environment"
 	_ "github.com/go-sql-driver/mysql"
 	"google.golang.org/grpc"
+	"log"
+	"net"
 
 	"github.com/Azure/azure-sdk-for-go/services/cognitiveservices/v1.0/face"
 	"github.com/Azure/go-autorest/autorest"
 )
 
-type Frames struct {
-	f Frame
-	current int
-}
 type Frame struct {
 	number int
 	data []byte
+	lastChunk bool
 }
 
 type routeServer struct {
@@ -31,7 +27,7 @@ type routeServer struct {
 	imagestore string
 	videostore string
 	faceClient *face.Client
-	streams    map[string][]Frames
+	streams    VideoStreams
 }
 
 
