@@ -25,6 +25,27 @@ message FaceVerificationResp {
   float confidence = 2;
 }
 
+
+message HistoryRecord{
+  string name = 1;
+  string status = 2;
+  Photo Photo = 3;
+  string time = 4;
+}
+
+
+
+message Timestamp{
+  string starttime = 1;
+  string endtime = 2;
+}
+
+message Permission{
+  string usernames = 1;  //could be none, if the user is not a truested user
+  int64 userid = 2;     // used to update the recorded table status
+  bool permit = 3;     //  if agree to access set to 1, rejected set to 0
+}
+
 service Route {
   rpc AddTrustedUser(stream User) returns (Empty) {}
   rpc UpdateTrustedUser(stream User) returns (Empty) {}
@@ -32,4 +53,18 @@ service Route {
   rpc RemoveTrustedUser(User) returns (Empty) {}
   rpc GetUserPhoto(User) returns(stream Photo) {}
   rpc GetAllUserNames(Empty) returns (UserNames) {}
+
+
+  //history record and permission
+  rpc  GetHistoryRecorded(Timestamp) returns (stream HistoryRecord){}
+
+  //send permission
+  rpc  GivePermission(Permission) returns (Empty){}
+  
+  //get the latest image when app gets the notification 
+  rpc GetLatestImage(Empty) returns (stream Photo){}
+
 }
+
+
+

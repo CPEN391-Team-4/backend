@@ -16,7 +16,7 @@ import (
 )
 
 const USERS_TABLE = "users"
-const READ_BUF_SIZE = 16
+const READ_BUF_SIZE = 1024
 
 type User struct {
 	name string
@@ -236,6 +236,7 @@ func (rs *routeServer) UpdateTrustedUser(stream pb.Route_UpdateTrustedUserServer
 }
 
 func (rs *routeServer) GetAllUserNames(context.Context, *pb.Empty) (*pb.UserNames, error) {
+    fmt.Println("Hello")
 
 	allUserNames, err := rs.getAllUserNameFromDB()
 	if err != nil {
@@ -307,6 +308,6 @@ func (rs *routeServer) GetUserPhoto(user *pb.User, stream pb.Route_GetUserPhotoS
 		}
 		sizeTotal += n
 	}
-	fmt.Printf("Sent %d bytes", sizeTotal)
+	fmt.Println("Sent %d bytes", sizeTotal)
 	return nil
 }
