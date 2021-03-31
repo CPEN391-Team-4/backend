@@ -1,36 +1,29 @@
-package main
+package notification
 
 import (
 	"context"
-	"fmt"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	firebase "firebase.google.com/go"
-
-	"log"
 
 	"firebase.google.com/go/messaging"
 	"google.golang.org/api/option"
 )
 
-func sendNotification(tok string, title string, body string) {
-	path := "/home/aniket/go/src/github.com/CPEN391-Team-4/backend/src/notification/key.json"
-
-	opt := option.WithCredentialsFile(path)
+func Send(tok string, title string, body string, credentialsFile string) (string, error) {
+	opt := option.WithCredentialsFile(credentialsFile)
 	app, err := firebase.NewApp(context.Background(), nil, opt)
 	if err != nil {
-		log.Fatalf("error initializing app: %v", err)
+		return "", status.Errorf(codes.Unknown, "error initializing app: %v", err)
 	}
 
 	ctx := context.Background()
 	client, err := app.Messaging(ctx)
 	if err != nil {
-		log.Fatalf("error getting Messaging client: %v\n", err)
+		return "", status.Errorf(codes.Unknown, "error getting Messaging client: %v", err)
 	}
 
-	// This registration token comes from the client FCM SDKs.
-	//registrationToken := "cRfvd9qkRp6zhkjI8rwwF8:APA91bHO19zsujdKPIkdBxaddI-YIoqzS-UwmibR7gtiVPNzbuhbD-FL15Dbh_jBCumRisq2Slxa24iv7-EhPKXRL4KEqMz2dT_RILaYhqajhyxE6nufaL46aWNAHepITkOwFdtGwt5o"
-
-	// See documentation on defining a message payload.
 	message := &messaging.Message{
 		Notification: &messaging.Notification{
 			Title: title,
@@ -41,14 +34,6 @@ func sendNotification(tok string, title string, body string) {
 
 	// Send a message to the device corresponding to the provided
 	// registration token.
-	response, err := client.Send(ctx, message)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	// Response is a message ID string.
-	fmt.Println("Successfully sent message:", response)
-}
 
-// func main() {
-// 	sendNotification(os.Args[1], os.Args[2], os.Args[3])
-// }
+	return client.Send(ctx, message)
+}
