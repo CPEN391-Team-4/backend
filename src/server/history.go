@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"context"
-	"database/sql"
 	"fmt"
 	"io"
 	"log"
@@ -16,28 +15,30 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const History_TABLE = "history_table"
+const HistoryTable = "history_table"
 
 const WaitedGuest = "Stranger"
 
+const timeZone = "Local"
+
 type Record struct {
-	Id             int64
-	Name           string
-	Image_location string
-	Status         string
-	Time           string
+	Id            int64
+	Name          string
+	ImageLocation string
+	Status        string
+	Time          string
 }
 
 //.
 //.
 //.
 //.
-//All the grpc function for the app to server for the history record part
+//All the grpc functions for the app to server for the history record part
 
-func (rs *routeServer) GetHistoryReocorded(timestamp *pb.Timestamp, stream pb.Route_GetHistoryReocordedServer) error {
+func (rs *routeServer) GetHistoryRecorded(timestamp *pb.Timestamp, stream pb.Route_GetHistoryReocordedServer) error {
 	var err error
 
-	records, err := getHisRecDBbyTime(rs.conn, timestamp.Starttime, timestamp.Endtime)
+	records, err := rs.GetHisRecDBbyTime(timestamp.Starttime, timestamp.Endtime)
 	if err != nil {
 		return err
 	}
@@ -46,7 +47,7 @@ func (rs *routeServer) GetHistoryReocorded(timestamp *pb.Timestamp, stream pb.Ro
 	for i, rec := range records {
 
 		// the location of this may change
-		f, err := os.Open(rs.imagestore + "/" + rec.Image_location)
+		f, err := os.Open(rs.imagestore + "/" + rec.ImageLocation)
 		if err != nil {
 			return err
 		}
@@ -82,7 +83,7 @@ func (rs *routeServer) GetHistoryReocorded(timestamp *pb.Timestamp, stream pb.Ro
 			sizeTotal += n
 			segNumber += 1
 		}
-		log.Printf("Sent %d bytes for the %d history reocord\n", sizeTotal, i)
+		log.Printf("Sent %d bytes for the %d history record\n", sizeTotal, i)
 
 	}
 
@@ -93,24 +94,24 @@ func (rs *routeServer) GivePermission(ctx context.Context, permission *pb.Permis
 
 	var err error
 	if permission.Usernames != WaitedGuest {
-		return nil, status.Errorf(codes.NotFound, "Permission Guest Name did not mathch!")
+		return nil, status.Errorf(codes.NotFound, "Permission Guest Name did not match!")
 	}
 
 	//set the getPermission map with id , value according to the permission
 
 	//update the permission status in the database
 	if permission.Permit {
-		err = updateRecordStatusToDB(rs.conn, permission.Userid, "Access")
+		err = rs.UpdateRecordStatusToDB(permission.Userid, "Access")
 	} else {
-		err = updateRecordStatusToDB(rs.conn, permission.Userid, "Denied")
+		err = rs.UpdateRecordStatusToDB(permission.Userid, "Denied")
 	}
 
 	return nil, err
 }
 
-func (rs *routeServer) GetLastestImage(e *pb.Empty, stream pb.Route_GetLastestImageServer) error {
+func (rs *routeServer) GetLatestImage(_ *pb.Empty, stream pb.Route_GetLastestImageServer) error {
 	var err error
-	imageid, err := getLastedRecordImageID(rs.conn)
+	imageid, err := rs.GetLatestRecordImageID()
 
 	f, err := os.Open(rs.imagestore + "/" + imageid)
 	if err != nil {
@@ -153,35 +154,41 @@ func (rs *routeServer) GetLastestImage(e *pb.Empty, stream pb.Route_GetLastestIm
 //.
 //All the functions for the communication between server to database for history record part.
 
-func addRecordToDB(db *sql.DB, name string, image_location string) (int64, error) {
+func (rs *routeServer) AddRecordToDB(name string, imageLocation string) (int64, error) {
 
-	loc, _ := time.LoadLocation("MST")
+	loc, err := time.LoadLocation(timeZone)
+	if err != nil {
+		return 0, err
+	}
+
 	dt := time.Now().In(loc)
 	recordtime := dt.Format(time.RFC3339)
 
-	sql := fmt.Sprintf(
-		"INSERT INTO `%s` (name, status, ImageLocation, time)VALUES ('%s', '%s', '%s', '%s');",
-		History_TABLE, name, "unknown", image_location, recordtime)
-	res, err := db.Exec(sql)
+	sql_q := fmt.Sprintf(
+		"INSERT INTO `%s` (name, status, ImageLocation, time) VALUES ('%s', '%s', '%s', '%s');",
+		HistoryTable, name, "unknown", imageLocation, recordtime)
+	res, err := rs.conn.Exec(sql_q)
+	if err != nil {
+		return 0, err
+	}
 
-	last_insert_id, err := res.LastInsertId()
-	//fmt.Println(last_insert_id)
+	lastInsertId, err := res.LastInsertId()
 
-	return last_insert_id, err
+	return lastInsertId, err
 }
 
-func updateRecordStatusToDB(db *sql.DB, id int64, status string) error {
-	sql := fmt.Sprintf(
+func (rs *routeServer) UpdateRecordStatusToDB(id int64, status string) error {
+	sql_q := fmt.Sprintf(
 		"UPDATE `%s` SET status = '%s' where id = '%d';",
-		History_TABLE, status, id)
-	_, err := db.Exec(sql)
+		HistoryTable, status, id)
+	_, err := rs.conn.Exec(sql_q)
 
 	return err
 }
 
-func getHisRecDBbyTime(db *sql.DB, starttime string, endtime string) ([]Record, error) {
-
-	res, err := db.Query("SELECT * FROM history_table where time between ? and ?", starttime, endtime)
+func (rs *routeServer) GetHisRecDBbyTime(starttime string, endtime string) ([]Record, error) {
+	sql_q := "SELECT * FROM " + HistoryTable + " WHERE time between ? and ?"
+	res, err := rs.conn.Query(sql_q, starttime, endtime)
 
 	if err != nil {
 		return nil, err
@@ -191,8 +198,7 @@ func getHisRecDBbyTime(db *sql.DB, starttime string, endtime string) ([]Record, 
 
 	for res.Next() {
 		var record Record
-		fmt.Println("onerow")
-		err = res.Scan(&record.Id, &record.Name, &record.Status, &record.Image_location, &record.Time)
+		err = res.Scan(&record.Id, &record.Name, &record.Status, &record.ImageLocation, &record.Time)
 		if err != nil {
 			panic(err.Error())
 		}
@@ -202,15 +208,15 @@ func getHisRecDBbyTime(db *sql.DB, starttime string, endtime string) ([]Record, 
 	return records, err
 }
 
-func clearHistoryRecord(db *sql.DB) error {
-	sql := fmt.Sprintf(
-		"Delete from `%s` where id > 0;", History_TABLE)
-	_, err := db.Exec(sql)
+func (rs *routeServer) ClearHistoryRecord() error {
+	sql_q := fmt.Sprintf(
+		"DELETE FROM `%s` WHERE id > 0;", HistoryTable)
+	_, err := rs.conn.Exec(sql_q)
 	return err
 }
 
-func getLastedRecordImageID(db *sql.DB) (string, error) {
-	res, err := db.Query("select ImageLocation from history_table order by id desc limit 1")
+func (rs *routeServer) GetLatestRecordImageID() (string, error) {
+	res, err := rs.conn.Query("SELECT ImageLocation FROM " + HistoryTable + " ORDER BY id DESC LIMIT 1")
 	imageid := ""
 	if err != nil {
 		return "", err
@@ -220,33 +226,5 @@ func getLastedRecordImageID(db *sql.DB) (string, error) {
 	}
 
 	return imageid, err
-
-}
-
-func maintest() {
-	fmt.Println("entertesthistory")
-	// environ := env{}
-	// environ.readEnv()
-	db, err := sql.Open("mysql", "root:password@tcp(127.0.0.1:3306)/cpen391_backend")
-	if err != nil {
-		log.Fatalf("failed to connect to database: %v", err)
-	}
-	defer db.Close()
-	clearHistoryRecord(db)
-	id1, err := addRecordToDB(db, "stranger", "imagelocation1")
-	updateRecordStatusToDB(db, id1, "reject")
-	id2, err := addRecordToDB(db, "stranger", "imagelocation2")
-	updateRecordStatusToDB(db, id2, "reject")
-	id3, err := addRecordToDB(db, "stranger", "imagelocation3")
-	updateRecordStatusToDB(db, id3, "reject")
-	id4, err := addRecordToDB(db, "stranger", "imagelocation4")
-	updateRecordStatusToDB(db, id4, "reject")
-
-	imageid, err := getLastedRecordImageID(db)
-	fmt.Println(imageid)
-
-	// records, err := getHisRecDBbyTime(db, "2021-03-25 12:00:00", "2021-03-25 13:50:00")
-	// fmt.Println(records)
-	// fmt.Println(err)
 
 }

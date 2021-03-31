@@ -56,13 +56,13 @@ service Route {
 
 
   //history record and permission
-  rpc  GetHistoryReocorded(Timestamp) returns (stream HistoryRecord){}
+  rpc  GetHistoryRecorded(Timestamp) returns (stream HistoryRecord){}
 
   //send permission
   rpc  GivePermission(Permission) returns (Empty){}
   
   //get the latest image when app gets the notification 
-  rpc GetLastestImage(Empty) returns (stream Photo){}
+  rpc GetLatestImage(Empty) returns (stream Photo){}
 
 }
 

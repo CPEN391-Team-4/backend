@@ -2,14 +2,12 @@ package main
 
 import (
 	"database/sql"
-	"log"
-	"net"
-    "fmt"
-
 	pb "github.com/CPEN391-Team-4/backend/pb/proto"
 	"github.com/CPEN391-Team-4/backend/src/environment"
 	_ "github.com/go-sql-driver/mysql"
 	"google.golang.org/grpc"
+	"log"
+	"net"
 
 	"github.com/Azure/azure-sdk-for-go/services/cognitiveservices/v1.0/face"
 	"github.com/Azure/go-autorest/autorest"
@@ -27,8 +25,7 @@ type routeServer struct {
 func main() {
 	environ := environment.Env{}
 	environ.ReadEnv()
-    fmt.Println(environ.DbUri)
-    fmt.Println(environ.ServerAddress)
+    log.Println("Listening on:", environ.ServerAddress)
 
 	lis, err := net.Listen("tcp", environ.ServerAddress)
 	if err != nil {
@@ -41,6 +38,7 @@ func main() {
 	}
 
 	defer db.Close()
+	defer lis.Close()
 
 	grpcServer := grpc.NewServer()
 
