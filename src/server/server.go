@@ -15,10 +15,12 @@ import (
 
 type routeServer struct {
 	pb.UnimplementedRouteServer
-	conn       *sql.DB
-	db         string
-	imagestore string
-	faceClient *face.Client
+	conn            *sql.DB
+	db              string
+	imagestore      string
+	videostore      string
+	firebaseKeyfile string
+	faceClient      *face.Client
 }
 
 
@@ -50,6 +52,8 @@ func main() {
 		conn: db,
 		db: environ.Db,
 		imagestore: environ.Imagestore,
+		firebaseKeyfile: environ.FirebaseKeyfile,
+		videostore: environ.Videostore,
 		faceClient: &faceClient,
 	}
 	pb.RegisterRouteServer(grpcServer, &rs)

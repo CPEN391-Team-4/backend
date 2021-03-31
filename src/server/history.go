@@ -20,6 +20,7 @@ const HistoryTable = "history_table"
 const WaitedGuest = "Stranger"
 
 const timeZone = "Local"
+const timeFormat = "2006-01-02 03:04:05"
 
 type Record struct {
 	Id            int64
@@ -162,11 +163,11 @@ func (rs *routeServer) AddRecordToDB(name string, imageLocation string) (int64, 
 	}
 
 	dt := time.Now().In(loc)
-	recordtime := dt.Format(time.RFC3339)
+	recordTime := dt.Format(timeFormat)
 
 	sql_q := fmt.Sprintf(
 		"INSERT INTO `%s` (name, status, ImageLocation, time) VALUES ('%s', '%s', '%s', '%s');",
-		HistoryTable, name, "unknown", imageLocation, recordtime)
+		HistoryTable, name, "unknown", imageLocation, recordTime)
 	res, err := rs.conn.Exec(sql_q)
 	if err != nil {
 		return 0, err

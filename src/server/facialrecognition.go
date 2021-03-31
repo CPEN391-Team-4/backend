@@ -3,9 +3,11 @@ package main
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"github.com/Azure/azure-sdk-for-go/profiles/latest/cognitiveservices/face"
 	pb "github.com/CPEN391-Team-4/backend/pb/proto"
 	"github.com/CPEN391-Team-4/backend/src/logging"
+	"github.com/CPEN391-Team-4/backend/src/notification"
 	"github.com/gofrs/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -14,6 +16,8 @@ import (
 	"log"
 	"os"
 )
+
+const userToken = "cRfvd9qkRp6zhkjI8rwwF8:APA91bHO19zsujdKPIkdBxaddI-YIoqzS-UwmibR7gtiVPNzbuhbD-FL15Dbh_jBCumRisq2Slxa24iv7-EhPKXRL4KEqMz2dT_RILaYhqajhyxE6nufaL46aWNAHepITkOwFdtGwt5o"
 
 func (rs *routeServer) verifyFace(face0 *os.File, faceBuffer *bytes.Buffer) (*face.VerifyResult, error) {
 
@@ -152,6 +156,24 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 			resp.Confidence = float32(*res.result.Confidence)
 			break
 		}
+	}
+
+	fw := FileWriter{Directory: rs.imagestore}
+
+	imgId, err := fw.Save(".raw", imgBytes)
+	if err != nil {
+		return logging.LogError(status.Errorf(codes.Internal, "cannot save image: %v", err))
+	}
+
+	_, err = rs.AddRecordToDB(resp.User, imgId)
+	if err != nil {
+		return logging.LogError(status.Errorf(codes.Internal, "cannot add record to db: %v", err))
+	}
+
+	// TODO: tok
+	_, err = notification.Send(userToken, "Detected human motion", fmt.Sprintf("user=%s", resp.User), rs.firebaseKeyfile)
+	if err != nil {
+		return logging.LogError(status.Errorf(codes.Internal, "cannot send notification: %v", err))
 	}
 
 	return stream.SendAndClose(&resp)

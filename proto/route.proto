@@ -51,7 +51,7 @@ service Route {
   rpc UpdateTrustedUser(stream User) returns (Empty) {}
   rpc VerifyUserFace(stream FaceVerificationReq) returns (FaceVerificationResp) {}
   rpc RemoveTrustedUser(User) returns (Empty) {}
-  rpc GetUserPhoto(User) returns(stream Photo) {}
+  rpc GetUserPhoto(User) returns (stream Photo) {}
   rpc GetAllUserNames(Empty) returns (UserNames) {}
 
 
