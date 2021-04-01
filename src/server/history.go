@@ -53,7 +53,7 @@ func (rs *routeServer) GetHistoryRecorded(ctx context.Context, timestamp *pb.Tim
 
 		recordList.Record = append(recordList.Record, &record)
 	}
-
+	fmt.Println(recordList)
 	return &recordList, err
 }
 
@@ -92,11 +92,20 @@ func (rs *routeServer) GetHistoryImage(imageuuid *pb.ImageLocation, stream pb.Ro
 	return nil
 }
 
+func (rs *routeServer) DeleteRecords(ctx context.Context, imageid *pb.ImageLocation) (*pb.Empty, error) {
+	var err error
+	err = rs.DeleteRecordFromDB(imageid.Address)
+	if err != nil {
+		return &pb.Empty{}, err
+	}
+	return &pb.Empty{}, err
+}
+
 func (rs *routeServer) GivePermission(ctx context.Context, permission *pb.Permission) (*pb.Empty, error) {
 
 	var err error
 	if permission.Usernames != WaitedGuest {
-		return nil, status.Errorf(codes.NotFound, "Permission Guest Name did not match!")
+		return &pb.Empty{}, status.Errorf(codes.NotFound, "Permission Guest Name did not match!")
 	}
 
 	//set the getPermission map with id , value according to the permission
@@ -108,7 +117,7 @@ func (rs *routeServer) GivePermission(ctx context.Context, permission *pb.Permis
 		rs.waitingUser <- permDeny
 	}
 
-	return nil, err
+	return &pb.Empty{}, err
 }
 
 func (rs *routeServer) GetLatestImage(_ *pb.Empty, stream pb.Route_GetLatestImageServer) error {
@@ -208,6 +217,13 @@ func (rs *routeServer) GetHisRecDBbyTime(starttime string, endtime string) ([]Re
 	}
 
 	return records, err
+}
+
+func (rs *routeServer) DeleteRecordFromDB(imagelocation string) error {
+	sql_q := fmt.Sprintf(
+		"DELETE FROM `%s` WHERE  ImageLocation ='%s';", HistoryTable, imagelocation)
+	_, err := rs.conn.Exec(sql_q)
+	return err
 }
 
 func (rs *routeServer) ClearHistoryRecord() error {

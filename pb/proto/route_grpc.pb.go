@@ -27,6 +27,7 @@ type RouteClient interface {
 	//history record and permission
 	GetHistoryRecorded(ctx context.Context, in *Timestamp, opts ...grpc.CallOption) (*HistoryRecords, error)
 	GetHistoryImage(ctx context.Context, in *ImageLocation, opts ...grpc.CallOption) (Route_GetHistoryImageClient, error)
+	DeleteRecords(ctx context.Context, in *ImageLocation, opts ...grpc.CallOption) (*Empty, error)
 	//send permission
 	GivePermission(ctx context.Context, in *Permission, opts ...grpc.CallOption) (*Empty, error)
 	//get the latest image when app gets the notification
@@ -234,6 +235,15 @@ func (x *routeGetHistoryImageClient) Recv() (*Photo, error) {
 	return m, nil
 }
 
+func (c *routeClient) DeleteRecords(ctx context.Context, in *ImageLocation, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/route.Route/DeleteRecords", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *routeClient) GivePermission(ctx context.Context, in *Permission, opts ...grpc.CallOption) (*Empty, error) {
 	out := new(Empty)
 	err := c.cc.Invoke(ctx, "/route.Route/GivePermission", in, out, opts...)
@@ -288,6 +298,7 @@ type RouteServer interface {
 	//history record and permission
 	GetHistoryRecorded(context.Context, *Timestamp) (*HistoryRecords, error)
 	GetHistoryImage(*ImageLocation, Route_GetHistoryImageServer) error
+	DeleteRecords(context.Context, *ImageLocation) (*Empty, error)
 	//send permission
 	GivePermission(context.Context, *Permission) (*Empty, error)
 	//get the latest image when app gets the notification
@@ -322,6 +333,9 @@ func (UnimplementedRouteServer) GetHistoryRecorded(context.Context, *Timestamp) 
 }
 func (UnimplementedRouteServer) GetHistoryImage(*ImageLocation, Route_GetHistoryImageServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetHistoryImage not implemented")
+}
+func (UnimplementedRouteServer) DeleteRecords(context.Context, *ImageLocation) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteRecords not implemented")
 }
 func (UnimplementedRouteServer) GivePermission(context.Context, *Permission) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GivePermission not implemented")
@@ -516,6 +530,24 @@ func (x *routeGetHistoryImageServer) Send(m *Photo) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _Route_DeleteRecords_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ImageLocation)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RouteServer).DeleteRecords(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/route.Route/DeleteRecords",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RouteServer).DeleteRecords(ctx, req.(*ImageLocation))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Route_GivePermission_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Permission)
 	if err := dec(in); err != nil {
@@ -573,6 +605,10 @@ var Route_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetHistoryRecorded",
 			Handler:    _Route_GetHistoryRecorded_Handler,
+		},
+		{
+			MethodName: "DeleteRecords",
+			Handler:    _Route_DeleteRecords_Handler,
 		},
 		{
 			MethodName: "GivePermission",

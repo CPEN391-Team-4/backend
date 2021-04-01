@@ -67,7 +67,7 @@ service Route {
   //history record and permission
   rpc  GetHistoryRecorded(Timestamp) returns (HistoryRecords){}
   rpc  GetHistoryImage(ImageLocation) returns (stream Photo){}
-
+  rpc  DeleteRecords(ImageLocation) returns (Empty){}
   //send permission
   rpc  GivePermission(Permission) returns (Empty){}
   
