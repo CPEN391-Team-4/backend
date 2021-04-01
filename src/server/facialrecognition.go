@@ -4,6 +4,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"log"
+	"os"
+	"time"
+
 	"github.com/Azure/azure-sdk-for-go/profiles/latest/cognitiveservices/face"
 	pb "github.com/CPEN391-Team-4/backend/pb/proto"
 	"github.com/CPEN391-Team-4/backend/src/logging"
@@ -11,11 +17,6 @@ import (
 	"github.com/gofrs/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"io"
-	"io/ioutil"
-	"log"
-	"os"
-	"time"
 )
 
 const userTimeout = 30
@@ -67,10 +68,10 @@ func (rs *routeServer) verifyFace(face0 *os.File, faceBuffer *bytes.Buffer) (*fa
 
 type VerifyFaceResult struct {
 	result *face.VerifyResult
-	err error
+	err    error
 }
 
-func (rs *routeServer) verifyFaceAsync(user *User, faceBuffer *bytes.Buffer) <- chan VerifyFaceResult {
+func (rs *routeServer) verifyFaceAsync(user *User, faceBuffer *bytes.Buffer) <-chan VerifyFaceResult {
 	r := make(chan VerifyFaceResult)
 	go func() {
 		defer close(r)
@@ -141,13 +142,13 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 	if err != nil {
 		return err
 	}
-	resChan := make([]<- chan VerifyFaceResult, len(users))
+	resChan := make([]<-chan VerifyFaceResult, len(users))
 	for i, user := range users {
 		resChan[i] = rs.verifyFaceAsync(&user, &imgBytes)
 	}
 
 	for i, user := range users {
-		res := <- resChan[i]
+		res := <-resChan[i]
 		if res.err != nil {
 			continue
 		}
@@ -168,7 +169,7 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 		return logging.LogError(status.Errorf(codes.Internal, "cannot save image: %v", err))
 	}
 
-	_, err = rs.AddRecordToDB(resp.User, imgId)
+	recordID, err := rs.AddRecordToDB(resp.User, imgId)
 	if err != nil {
 		return logging.LogError(status.Errorf(codes.Internal, "cannot add record to db: %v", err))
 	}
@@ -181,14 +182,16 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 
 	// Wait for response
 	select {
-		case res := <- rs.waitingUser:
-			fmt.Println("Success:", res)
-			resp.Accept = res == permAllow
-		case <-time.After(userTimeout * time.Second):
-			log.Println("timeout waiting on notification response")
-			resp.User = ""
-			resp.Confidence = 0
-			resp.Accept = false
+	case res := <-rs.waitingUser:
+		fmt.Println("Success:", res)
+		rs.UpdateRecordStatusToDB(recordID, "Agree")
+		resp.Accept = res == permAllow
+	case <-time.After(userTimeout * time.Second):
+		log.Println("timeout waiting on notification response")
+		rs.UpdateRecordStatusToDB(recordID, "Deny")
+		resp.User = ""
+		resp.Confidence = 0
+		resp.Accept = false
 	}
 
 	return stream.SendAndClose(&resp)

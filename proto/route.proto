@@ -30,8 +30,16 @@ message FaceVerificationResp {
 message HistoryRecord{
   string name = 1;
   string status = 2;
-  Photo Photo = 3;
+  string imageLocation = 3;
   string time = 4;
+}
+
+message HistoryRecords{
+  repeated HistoryRecord record = 1;
+}
+
+message ImageLocation{
+  string address = 1;
 }
 
 
@@ -57,7 +65,8 @@ service Route {
 
 
   //history record and permission
-  rpc  GetHistoryRecorded(Timestamp) returns (stream HistoryRecord){}
+  rpc  GetHistoryRecorded(Timestamp) returns (HistoryRecords){}
+  rpc  GetHistoryImage(ImageLocation) returns (stream Photo){}
 
   //send permission
   rpc  GivePermission(Permission) returns (Empty){}

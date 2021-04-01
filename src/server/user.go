@@ -5,10 +5,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/CPEN391-Team-4/backend/src/logging"
 	"io"
 	"log"
 	"os"
+
+	"github.com/CPEN391-Team-4/backend/src/logging"
 
 	pb "github.com/CPEN391-Team-4/backend/pb/proto"
 	"google.golang.org/grpc/codes"
@@ -19,8 +20,8 @@ const USERS_TABLE = "users"
 const READ_BUF_SIZE = 1024
 
 type User struct {
-	name string
-	image_id string
+	name       string
+	image_id   string
 	restricted bool
 }
 
@@ -236,7 +237,7 @@ func (rs *routeServer) UpdateTrustedUser(stream pb.Route_UpdateTrustedUserServer
 }
 
 func (rs *routeServer) GetAllUserNames(context.Context, *pb.Empty) (*pb.UserNames, error) {
-    fmt.Println("Hello")
+	fmt.Println("Hello")
 
 	allUserNames, err := rs.getAllUserNameFromDB()
 	if err != nil {

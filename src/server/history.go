@@ -35,60 +35,61 @@ type Record struct {
 //.
 //.
 //All the grpc functions for the app to server for the history record part
-
-func (rs *routeServer) GetHistoryRecorded(timestamp *pb.Timestamp, stream pb.Route_GetHistoryRecordedServer) error {
+func (rs *routeServer) GetHistoryRecorded(ctx context.Context, timestamp *pb.Timestamp) (*pb.HistoryRecords, error) {
 	var err error
-
+	var recordList pb.HistoryRecords
 	records, err := rs.GetHisRecDBbyTime(timestamp.Starttime, timestamp.Endtime)
+	if err != nil {
+		return &recordList, err
+	}
+
+	//loop through every records in the records list
+	for _, rec := range records {
+		var record pb.HistoryRecord
+		record.Name = rec.Name
+		record.Status = rec.Status
+		record.ImageLocation = rec.ImageLocation
+		record.Time = rec.Time
+
+		recordList.Record = append(recordList.Record, &record)
+	}
+
+	return &recordList, err
+}
+
+//get history image from the ImageStore
+func (rs *routeServer) GetHistoryImage(imageuuid *pb.ImageLocation, stream pb.Route_GetHistoryImageServer) error {
+	f, err := os.Open(rs.imagestore + "/" + imageuuid.Address)
 	if err != nil {
 		return err
 	}
 
-	//loop through every records in the records list
-	for i, rec := range records {
+	defer f.Close()
 
-		// the location of this may change
-		f, err := os.Open(rs.imagestore + "/" + rec.ImageLocation)
+	reader := bufio.NewReader(f)
+	buf := make([]byte, READ_BUF_SIZE)
+
+	var photo pb.Photo
+
+	sizeTotal := 0
+	for {
+		n, err := reader.Read(buf)
+		if err != nil {
+			if err != io.EOF {
+				return err
+			}
+			break
+		}
+
+		photo.Image = buf[0:n]
+		err = stream.Send(&photo)
 		if err != nil {
 			return err
 		}
-		reader := bufio.NewReader(f)
-		buf := make([]byte, READ_BUF_SIZE)
-		var photo pb.Photo
-		sizeTotal := 0
-		segNumber := 0
-		for {
-			var record pb.HistoryRecord
-			//only send the basic info in the first history segments
-			if segNumber == 0 {
-				record.Name = rec.Name
-				record.Status = rec.Status
-				record.Time = rec.Time
-			}
-
-			n, err := reader.Read(buf)
-			if err != nil {
-				if err != io.EOF {
-					return err
-				}
-				break
-			}
-
-			photo.Image = buf[0:n]
-
-			record.Photo = &photo
-			err = stream.Send(&record)
-			if err != nil {
-				return err
-			}
-			sizeTotal += n
-			segNumber += 1
-		}
-		log.Printf("Sent %d bytes for the %d history record\n", sizeTotal, i)
-
+		sizeTotal += n
 	}
-
-	return err
+	fmt.Println("Sent %d bytes", sizeTotal)
+	return nil
 }
 
 func (rs *routeServer) GivePermission(ctx context.Context, permission *pb.Permission) (*pb.Empty, error) {
