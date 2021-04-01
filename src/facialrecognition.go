@@ -3,25 +3,16 @@ package main
 import (
 	"bytes"
 	"context"
-	"fmt"
+	"github.com/Azure/azure-sdk-for-go/profiles/latest/cognitiveservices/face"
+	pb "github.com/CPEN391-Team-4/backend/pb/proto"
+	"github.com/gofrs/uuid"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"io"
 	"io/ioutil"
 	"log"
 	"os"
-	"time"
-
-	"github.com/Azure/azure-sdk-for-go/profiles/latest/cognitiveservices/face"
-	pb "github.com/CPEN391-Team-4/backend/pb/proto"
-	"github.com/CPEN391-Team-4/backend/src/logging"
-	"github.com/CPEN391-Team-4/backend/src/notification"
-	"github.com/gofrs/uuid"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
-
-const userTimeout = 30
-
-const userToken = "cRfvd9qkRp6zhkjI8rwwF8:APA91bHO19zsujdKPIkdBxaddI-YIoqzS-UwmibR7gtiVPNzbuhbD-FL15Dbh_jBCumRisq2Slxa24iv7-EhPKXRL4KEqMz2dT_RILaYhqajhyxE6nufaL46aWNAHepITkOwFdtGwt5o"
 
 func (rs *routeServer) verifyFace(face0 *os.File, faceBuffer *bytes.Buffer) (*face.VerifyResult, error) {
 
@@ -66,41 +57,6 @@ func (rs *routeServer) verifyFace(face0 *os.File, faceBuffer *bytes.Buffer) (*fa
 	return &verifyResultSame, nil
 }
 
-type VerifyFaceResult struct {
-	result *face.VerifyResult
-	err    error
-}
-
-func (rs *routeServer) verifyFaceAsync(user *User, faceBuffer *bytes.Buffer) <-chan VerifyFaceResult {
-	r := make(chan VerifyFaceResult)
-	go func() {
-		defer close(r)
-		var res VerifyFaceResult
-		if len(user.image_id) <= 0 {
-			res.err = status.Errorf(codes.Unknown, "No image found for %s", user.name)
-			res.result = nil
-			r <- res
-			return
-		}
-		faceOrig, err := os.Open(rs.imagestore + "/" + user.image_id)
-		if err != nil {
-			res.err = err
-			r <- res
-			return
-		}
-
-		res.result, res.err = rs.verifyFace(faceOrig, faceBuffer)
-		if res.err != nil {
-			r <- res
-			return
-		}
-		res.err = faceOrig.Close()
-		r <- res
-	}()
-
-	return r
-}
-
 func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) error {
 	imgBytes := bytes.Buffer{}
 	var fvReq *pb.FaceVerificationReq
@@ -113,12 +69,12 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 			break
 		}
 		if err != nil {
-			return logging.LogError(status.Errorf(codes.Unknown, "cannot receive chunk data: %v", err))
+			return logError(status.Errorf(codes.Unknown, "cannot receive chunk data: %v", err))
 		}
 
 		if chunkNum == 0 {
 			if req == nil {
-				return logging.LogError(status.Errorf(codes.Unknown, "User must be set on first request"))
+				return logError(status.Errorf(codes.Unknown, "User must be set on first request"))
 			}
 			fvReq = req
 			log.Print("received a request", fvReq)
@@ -131,71 +87,39 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 
 			_, err = imgBytes.Write(chunk)
 			if err != nil {
-				return logging.LogError(status.Errorf(codes.Internal, "cannot write chunk data: %v", err))
+				return logError(status.Errorf(codes.Internal, "cannot write chunk data: %v", err))
 			}
 
 			imageSize += size
 		}
 	}
-	var resp pb.FaceVerificationResp
-	users, err := rs.getAllUsersFromDB()
+	user := fvReq.GetUser()
+	u, err := rs.getUserFromDB(user)
 	if err != nil {
 		return err
 	}
-	resChan := make([]<-chan VerifyFaceResult, len(users))
-	for i, user := range users {
-		resChan[i] = rs.verifyFaceAsync(&user, &imgBytes)
+	if len(u.image_id) <= 0 {
+		return status.Errorf(codes.Unknown, "No image found for %s", u.name)
 	}
-
-	dbuser := "Stranger"
-
-	for i, user := range users {
-		res := <-resChan[i]
-		if res.err != nil {
-			continue
-		}
-		if res.result == nil {
-			continue
-		}
-		if *res.result.IsIdentical {
-			dbuser = user.name
-			resp.User = user.name
-			resp.Confidence = float32(*res.result.Confidence)
-			break
-		}
-	}
-
-	fw := FileWriter{Directory: rs.imagestore}
-
-	imgId, err := fw.Save(".raw", imgBytes)
+	faceOrig, err := os.Open(rs.imagestore + "/" + u.image_id)
 	if err != nil {
-		return logging.LogError(status.Errorf(codes.Internal, "cannot save image: %v", err))
+		return err
 	}
 
-	recordID, err := rs.AddRecordToDB(dbuser, imgId)
+// TESTING
+//	imgBytes2, err := ioutil.ReadFile(rs.imagestore + "/" + u.image_id)
+//	if err != nil {
+//		return err
+//	}
+//	imgBytesBuffer := bytes.NewBuffer(imgBytes2)
+//	verif, err := rs.verifyFace(faceOrig, imgBytesBuffer)
+// END TESTING
+
+	verif, err := rs.verifyFace(faceOrig, &imgBytes)
+
 	if err != nil {
-		return logging.LogError(status.Errorf(codes.Internal, "cannot add record to db: %v", err))
+		return err
 	}
 
-	// TODO: tok
-	_, err = notification.Send(userToken, "Detected human motion", fmt.Sprintf("user=%s", resp.User), rs.firebaseKeyfile)
-	if err != nil {
-		return logging.LogError(status.Errorf(codes.Internal, "cannot send notification: %v", err))
-	}
-
-	// Wait for response
-	select {
-	case res := <-rs.waitingUser:
-		fmt.Println("Success:", res)
-		rs.UpdateRecordStatusToDB(recordID, "Agree")
-		resp.Accept = res == permAllow
-	case <-time.After(userTimeout * time.Second):
-		log.Println("timeout waiting on notification response")
-		rs.UpdateRecordStatusToDB(recordID, "Deny")
-		resp.User = ""
-		resp.Confidence = 0
-		resp.Accept = false
-	}
-
-	return stream.SendAndClose(&resp)
+	return stream.SendAndClose(&pb.FaceVerificationResp{Verified: *verif.IsIdentical})
 }
