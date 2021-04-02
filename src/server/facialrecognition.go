@@ -19,9 +19,10 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const userTimeout = 30
+const userTimeout = 15
 
-// const userToken = "cRfvd9qkRp6zhkjI8rwwF8:APA91bHO19zsujdKPIkdBxaddI-YIoqzS-UwmibR7gtiVPNzbuhbD-FL15Dbh_jBCumRisq2Slxa24iv7-EhPKXRL4KEqMz2dT_RILaYhqajhyxE6nufaL46aWNAHepITkOwFdtGwt5o"
+//const userToken = "dbW_Mb7ESuqlXw8lxY8YDs:APA91bHoKYX5YE-fWgzTP4uzJjW791Z7UlyW3tRsCoH33z8TUOHcHPRpZ5ZKy5bMXmCAvGzE3P7od9wt8R59X-rMmfDnpjNuVnBpGqqkRQ5J-m3VXcGHQMHdv2isw43-UfUAbBL5EP5y"
+
 const userToken = "cB-goyEtTfq4P3fD3B8sN4:APA91bGF5r8vme7ekiANkrjpt-LiGInATl8utjJI2XuzcJoBbUzEjB8Njl7FcxgFYYgcVAE-B21GyTaGbFUAZcXyPNKykrGDstUJ-gjkDusDwscYO7SDVHOPYJ3WukMdiI44CONQr5Bc"
 
 func (rs *routeServer) verifyFace(face0 *os.File, faceBuffer *bytes.Buffer) (*face.VerifyResult, error) {
@@ -159,6 +160,7 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 			continue
 		}
 		if *res.result.IsIdentical {
+			fmt.Println(user.name)
 			dbuser = user.name
 			resp.User = user.name
 			resp.Confidence = float32(*res.result.Confidence)

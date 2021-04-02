@@ -32,6 +32,8 @@ type RouteClient interface {
 	GivePermission(ctx context.Context, in *Permission, opts ...grpc.CallOption) (*Empty, error)
 	//get the latest image when app gets the notification
 	GetLatestImage(ctx context.Context, in *Empty, opts ...grpc.CallOption) (Route_GetLatestImageClient, error)
+	//update the device token
+	UpdateDeviceToken(ctx context.Context, in *DeviceVerify, opts ...grpc.CallOption) (*Empty, error)
 }
 
 type routeClient struct {
@@ -285,6 +287,15 @@ func (x *routeGetLatestImageClient) Recv() (*Photo, error) {
 	return m, nil
 }
 
+func (c *routeClient) UpdateDeviceToken(ctx context.Context, in *DeviceVerify, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/route.Route/UpdateDeviceToken", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RouteServer is the server API for Route service.
 // All implementations must embed UnimplementedRouteServer
 // for forward compatibility
@@ -303,6 +314,8 @@ type RouteServer interface {
 	GivePermission(context.Context, *Permission) (*Empty, error)
 	//get the latest image when app gets the notification
 	GetLatestImage(*Empty, Route_GetLatestImageServer) error
+	//update the device token
+	UpdateDeviceToken(context.Context, *DeviceVerify) (*Empty, error)
 	mustEmbedUnimplementedRouteServer()
 }
 
@@ -342,6 +355,9 @@ func (UnimplementedRouteServer) GivePermission(context.Context, *Permission) (*E
 }
 func (UnimplementedRouteServer) GetLatestImage(*Empty, Route_GetLatestImageServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetLatestImage not implemented")
+}
+func (UnimplementedRouteServer) UpdateDeviceToken(context.Context, *DeviceVerify) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateDeviceToken not implemented")
 }
 func (UnimplementedRouteServer) mustEmbedUnimplementedRouteServer() {}
 
@@ -587,6 +603,24 @@ func (x *routeGetLatestImageServer) Send(m *Photo) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _Route_UpdateDeviceToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeviceVerify)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RouteServer).UpdateDeviceToken(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/route.Route/UpdateDeviceToken",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RouteServer).UpdateDeviceToken(ctx, req.(*DeviceVerify))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Route_ServiceDesc is the grpc.ServiceDesc for Route service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -613,6 +647,10 @@ var Route_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GivePermission",
 			Handler:    _Route_GivePermission_Handler,
+		},
+		{
+			MethodName: "UpdateDeviceToken",
+			Handler:    _Route_UpdateDeviceToken_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
