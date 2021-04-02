@@ -21,7 +21,8 @@ import (
 
 const userTimeout = 30
 
-const userToken = "cRfvd9qkRp6zhkjI8rwwF8:APA91bHO19zsujdKPIkdBxaddI-YIoqzS-UwmibR7gtiVPNzbuhbD-FL15Dbh_jBCumRisq2Slxa24iv7-EhPKXRL4KEqMz2dT_RILaYhqajhyxE6nufaL46aWNAHepITkOwFdtGwt5o"
+// const userToken = "cRfvd9qkRp6zhkjI8rwwF8:APA91bHO19zsujdKPIkdBxaddI-YIoqzS-UwmibR7gtiVPNzbuhbD-FL15Dbh_jBCumRisq2Slxa24iv7-EhPKXRL4KEqMz2dT_RILaYhqajhyxE6nufaL46aWNAHepITkOwFdtGwt5o"
+const userToken = "cB-goyEtTfq4P3fD3B8sN4:APA91bGF5r8vme7ekiANkrjpt-LiGInATl8utjJI2XuzcJoBbUzEjB8Njl7FcxgFYYgcVAE-B21GyTaGbFUAZcXyPNKykrGDstUJ-gjkDusDwscYO7SDVHOPYJ3WukMdiI44CONQr5Bc"
 
 func (rs *routeServer) verifyFace(face0 *os.File, faceBuffer *bytes.Buffer) (*face.VerifyResult, error) {
 
@@ -165,6 +166,7 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 		}
 	}
 
+	fmt.Println("Finishing verify face.")
 	fw := FileWriter{Directory: rs.imagestore}
 
 	imgId, err := fw.Save(".raw", imgBytes)

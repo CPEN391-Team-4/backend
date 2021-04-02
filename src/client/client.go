@@ -68,6 +68,8 @@ func main() {
 	}
 	defer conn.Close()
 	c := pb.NewRouteClient(conn)
+	fmt.Println(conn)
+	fmt.Println(os.Args[1])
 
 	verifyFaceCmd := flag.NewFlagSet("verifyface", flag.ExitOnError)
 
@@ -80,18 +82,18 @@ func main() {
 	}
 
 	switch os.Args[1] {
-		case "verifyface":
-			verifyFaceCmd.Parse(os.Args[2:])
-			fmt.Println("subcommand 'verifyface'")
-			fmt.Println("  tail:", verifyFaceCmd.Args())
-			if len(verifyFaceCmd.Args()) < 1 {
-				fmt.Println("expected subcommand 'verifyface' FILE argument")
-				os.Exit(1)
-			}
-			_ = verifyFace(c, ctx, verifyFaceCmd.Args()[0])
-		default:
-			fmt.Println("expected 'verifyface' subcommand")
+	case "verifyface":
+		verifyFaceCmd.Parse(os.Args[2:])
+		fmt.Println("subcommand 'verifyface'")
+		fmt.Println("  tail:", verifyFaceCmd.Args())
+		if len(verifyFaceCmd.Args()) < 1 {
+			fmt.Println("expected subcommand 'verifyface' FILE argument")
 			os.Exit(1)
+		}
+		_ = verifyFace(c, ctx, verifyFaceCmd.Args()[0])
+	default:
+		fmt.Println("expected 'verifyface' subcommand")
+		os.Exit(1)
 	}
 
 	log.Println(c, ctx)
