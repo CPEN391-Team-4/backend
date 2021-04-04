@@ -3,3 +3,4 @@
 .env
 /imagestore
 /videostore
+secrets/
