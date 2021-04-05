@@ -1,5 +1,6 @@
 .idea
 .vscode
-imagestore
 .env
+/imagestore
+/videostore
 secrets/

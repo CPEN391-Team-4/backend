@@ -14,6 +14,7 @@ import (
 	pb "github.com/CPEN391-Team-4/backend/pb/proto"
 	"github.com/CPEN391-Team-4/backend/src/logging"
 	"github.com/CPEN391-Team-4/backend/src/notification"
+	"github.com/CPEN391-Team-4/backend/src/imagestore"
 	"github.com/gofrs/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -169,7 +170,7 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 	}
 
 	fmt.Println("Finishing verify face.")
-	fw := FileWriter{Directory: rs.imagestore}
+	fw := imagestore.FileWriter{Directory: rs.imagestore}
 
 	imgId, err := fw.Save(".raw", imgBytes)
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/CPEN391-Team-4/backend/src/imagestore"
 	"io"
 	"log"
 	"os"
@@ -156,7 +157,7 @@ func (rs *routeServer) AddTrustedUser(stream pb.Route_AddTrustedUserServer) erro
 	var id string
 	var err error
 	if imageSize != 0 {
-		fw := FileWriter{Directory: rs.imagestore}
+		fw := imagestore.FileWriter{Directory: rs.imagestore}
 		id, err = fw.Save("."+user.GetPhoto().FileExtension, imgBytes)
 		if err != nil {
 			return err
@@ -211,7 +212,7 @@ func (rs *routeServer) UpdateTrustedUser(stream pb.Route_UpdateTrustedUserServer
 
 	var idUpdate string
 	if imageSize > 0 {
-		fw := FileWriter{Directory: rs.imagestore}
+		fw := imagestore.FileWriter{Directory: rs.imagestore}
 		id, err := fw.Save("."+user.GetPhoto().FileExtension, imgBytes)
 		if err != nil {
 			return logging.LogError(status.Errorf(codes.Internal, "Failed saving image to disk: %v", err))
@@ -223,7 +224,7 @@ func (rs *routeServer) UpdateTrustedUser(stream pb.Route_UpdateTrustedUserServer
 		return err
 	}
 	if len(u.image_id) > 0 {
-		fw := FileWriter{Directory: rs.imagestore}
+		fw := imagestore.FileWriter{Directory: rs.imagestore}
 		err = fw.Remove(u.image_id)
 		if err != nil {
 			return nil
@@ -260,7 +261,7 @@ func (rs *routeServer) RemoveTrustedUser(ctx context.Context, user *pb.User) (*p
 	}
 
 	if len(u.image_id) > 0 {
-		fw := FileWriter{Directory: rs.imagestore}
+		fw := imagestore.FileWriter{Directory: rs.imagestore}
 		err = fw.Remove(u.image_id)
 	}
 

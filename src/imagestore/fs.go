@@ -1,9 +1,9 @@
-package main
+package imagestore
 
 import (
 	"bytes"
 	"fmt"
-	uuid "github.com/google/uuid"
+	"github.com/google/uuid"
 	"os"
 )
 

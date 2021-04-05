@@ -13,6 +13,12 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 )
 
+type Frame struct {
+	number int
+	data []byte
+	lastChunk bool
+}
+
 const (
 	permWaiting = 0x01
 	permAllow   = 0x02
@@ -21,12 +27,14 @@ const (
 
 type routeServer struct {
 	pb.UnimplementedRouteServer
-	conn            *sql.DB
-	db              string
-	imagestore      string
-	videostore      string
+	pb.UnimplementedVideoRouteServer
+	conn       *sql.DB
+	db         string
+	imagestore string
+	videostore string
+	faceClient *face.Client
+	streams    VideoStreams
 	firebaseKeyfile string
-	faceClient      *face.Client
 	waitingUser     chan int
 }
 
@@ -59,12 +67,14 @@ func main() {
 		conn: db,
 		db: environ.Db,
 		imagestore: environ.Imagestore,
-		firebaseKeyfile: environ.FirebaseKeyfile,
 		videostore: environ.Videostore,
+		firebaseKeyfile: environ.FirebaseKeyfile,
 		faceClient: &faceClient,
+		streams: VideoStreams{stream: make(map[string]chan Frame)},
 		waitingUser:  make(chan int, 1),
 	}
 	pb.RegisterRouteServer(grpcServer, &rs)
+	pb.RegisterVideoRouteServer(grpcServer, &rs)
 
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %s", err)
