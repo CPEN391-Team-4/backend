@@ -17,6 +17,8 @@ import (
 
 const READ_BUF_SIZE = 16
 
+const NUM_TEST_FRAMES = 30
+
 func verifyFace(client pb.RouteClient, ctx context.Context, file string) error {
 	f, err := os.Open(file)
 	if err != nil {
@@ -118,7 +120,7 @@ func streamVideo(client pb.VideoRouteClient, ctx context.Context) error {
 	if err != nil {
 		log.Fatalf("%v.StreamVideo(_) = _, %v", client, err)
 	}
-	for i := 0; i < 10; i++{
+	for i := 0; i < NUM_TEST_FRAMES; i++{
 		for j := 0; j < 10; j++ {
 			frame.Chunk = []byte{byte(j)}
 			frame.LastChunk = j == 9
@@ -127,6 +129,7 @@ func streamVideo(client pb.VideoRouteClient, ctx context.Context) error {
 			if err := stream.Send(&req); err != nil && err != io.EOF {
 				log.Fatalf("%v.Send(%v) = %v", stream, &req, err)
 			}
+			log.Printf("Sent frame.Number=%v, frame.LastChunk=%v", frame.Number, frame.LastChunk)
 		}
 	}
 	reply, err := stream.CloseAndRecv()
@@ -134,6 +137,60 @@ func streamVideo(client pb.VideoRouteClient, ctx context.Context) error {
 		log.Fatalf("%v.CloseAndRecv() got error %v, want %v", stream, err, nil)
 	}
 	log.Printf("Route summary: %v", reply)
+	return nil
+}
+
+func sendPullVideo(client pb.VideoRouteClient, ctx context.Context) error {
+	var frame pb.Frame
+	sendStream, err := client.StreamVideo(ctx)
+	if err != nil {
+		log.Fatalf("%v.StreamVideo(_) = _, %v", client, err)
+	}
+	pullStream, err := client.PullVideoStream(ctx, &pb.PullVideoStreamReq{Id: "default"})
+	if err != nil {
+		log.Fatalf("%v.PullVideoStream(_) = _, %v", client, err)
+	}
+
+	for i := 0; i < NUM_TEST_FRAMES+1; i++{
+		if i < NUM_TEST_FRAMES+1 {
+			for j := 0; j < 10; j++ {
+				frame.Chunk = []byte{byte(j)}
+				frame.LastChunk = j == 9
+				frame.Number = int32(i)
+				req := pb.Video{Frame: &frame, Name: "Test"}
+				if err := sendStream.Send(&req); err != nil && err != io.EOF {
+					log.Fatalf("%v.Send(%v) = %v", sendStream, &req, err)
+				}
+
+				log.Printf("Sent frame.Number=%v, frame.LastChunk=%v", frame.Number, frame.LastChunk)
+			}
+		}
+
+		if i == 0 {
+			continue
+		}
+
+		reply, err := pullStream.Recv()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			log.Fatalf("%v.Recv() = %v", pullStream, err)
+		}
+		if int(reply.Video.Frame.Number) != i-1 {
+			log.Fatalf("Wrong frame, expected %v, recieved %v", i, int(reply.Video.Frame.Number))
+		}
+		log.Printf("Recieved %v", int(reply.Video.Frame.Number))
+		if reply.Closed {
+			log.Printf("Stream closed")
+			break
+		}
+	}
+	_, err = sendStream.CloseAndRecv()
+	if err != nil {
+		log.Fatalf("%v.CloseAndRecv() got error %v, want %v", sendStream, err, nil)
+	}
+
 	return nil
 }
 
@@ -192,6 +249,9 @@ func main() {
 		case "streamvideo":
 			fmt.Println("subcommand 'streamvideo'")
 			err = streamVideo(svc, ctx)
+		case "pullvideo":
+			fmt.Println("subcommand 'pullvideo'")
+			err = sendPullVideo(svc, ctx)
 		default:
 			fmt.Println("expected subcommand")
 			os.Exit(1)

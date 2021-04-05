@@ -58,6 +58,7 @@ func main() {
 		imagestore: environ.Imagestore,
 		videostore: environ.Videostore,
 		faceClient: &faceClient,
+		streams: VideoStreams{stream: make(map[string]chan Frame)},
 	}
 	pb.RegisterRouteServer(grpcServer, &rs)
 	pb.RegisterVideoRouteServer(grpcServer, &rs)

@@ -65,6 +65,8 @@ func (rs *routeServer) StreamVideo(stream pb.VideoRoute_StreamVideoServer) error
 				created = true
 			}
 
+			log.Printf("Recieved frame=%v, lastChunk=%v", frameNumber, lastChunk)
+
 			_, err = imgBytes.Write(chunk)
 			if err != nil {
 				return logging.LogError(status.Errorf(codes.Internal, "cannot write chunk data: %v", err))
@@ -72,12 +74,21 @@ func (rs *routeServer) StreamVideo(stream pb.VideoRoute_StreamVideoServer) error
 
 			imageSize += size
 
+			if !lastChunk {
+				continue
+			}
+
+			log.Printf("Videostream channel size=%v", len(rs.streams.stream[DEFAULT_ID]))
 			_, err = fw.Save(dirId, int(frameNumber), imgBytes)
 			if err != nil {
 				return logging.LogError(status.Errorf(codes.Internal, "cannot write chunk data: %v", err))
 			}
 
+			// Remove oldest frame
 			rs.streams.Lock()
+			if len(rs.streams.stream[DEFAULT_ID]) >= VIDEOSTREAM_SIZE {
+				<-rs.streams.stream[DEFAULT_ID]
+			}
 			rs.streams.stream[DEFAULT_ID] <- Frame{
 				number: int(frameNumber),
 				data:   imgBytes.Bytes(),
@@ -85,10 +96,8 @@ func (rs *routeServer) StreamVideo(stream pb.VideoRoute_StreamVideoServer) error
 			}
 			rs.streams.Unlock()
 
-			if lastChunk {
-				startFrame = true
-				imgBytes = bytes.Buffer{}
-			}
+			startFrame = true
+			imgBytes = bytes.Buffer{}
 		}
 	}
 	rs.streams.Lock()
@@ -112,6 +121,11 @@ func (rs *routeServer) PullVideoStream(req *pb.PullVideoStreamReq, stream pb.Vid
 	rs.streams.Unlock()
 	for {
 		rs.streams.Lock()
+		log.Printf("Videostream channel size=%v", len(rs.streams.stream[DEFAULT_ID]))
+		if len(rs.streams.stream[DEFAULT_ID]) == 0 {
+			rs.streams.Unlock()
+			continue
+		}
 		val, ok := rs.streams.stream[DEFAULT_ID]
 		if !ok || val == nil {
 			err := stream.Send(&pb.PullVideoStreamResp{
