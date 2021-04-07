@@ -1,0 +1,13 @@
+[Unit]
+Description=CPEN391 Backend
+After=network.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=cpen391
+ExecStart=/usr/local/bin/server
+
+[Install]
+WantedBy=multi-user.target
