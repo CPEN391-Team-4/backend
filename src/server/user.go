@@ -238,8 +238,6 @@ func (rs *routeServer) UpdateTrustedUser(stream pb.Route_UpdateTrustedUserServer
 }
 
 func (rs *routeServer) GetAllUserNames(context.Context, *pb.Empty) (*pb.UserNames, error) {
-	fmt.Println("Hello")
-
 	allUserNames, err := rs.getAllUserNameFromDB()
 	if err != nil {
 		fmt.Println(err)
