@@ -3,7 +3,7 @@ package videostore
 import (
 	"bytes"
 	"fmt"
-	uuid "github.com/google/uuid"
+	"github.com/google/uuid"
 	"io/fs"
 	"os"
 	"strconv"

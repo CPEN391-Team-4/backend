@@ -26,12 +26,6 @@ Create user and database:
 CREATE USER 'cpen391'@'localhost' IDENTIFIED BY '******';
 CREATE DATABASE cpen391_backend;
 GRANT ALL PRIVILEGES ON cpen391_backend.* TO 'cpen391'@'localhost';
-
-USE cpen391_backend;
-create table table_name
-(
-    name varchar(255) null,
-    image_id varchar(255) null,
-    restricted bool null
-);
 ```
+
+For schema, see `db/schema.sql`
