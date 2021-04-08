@@ -16,7 +16,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-const READ_BUF_SIZE = 16
+const READ_BUF_SIZE = 128
 
 const NUM_TEST_FRAMES = 30
 const FRAME_SIZE = 300 * 1024
@@ -63,7 +63,6 @@ func verifyFace(client pb.RouteClient, ctx context.Context, file string) error {
 
 	return nil
 }
-
 
 func getAllUserNames(c pb.RouteClient, ctx context.Context) error {
 	users, err := c.GetAllUserNames(ctx, &pb.Empty{})
@@ -136,12 +135,12 @@ func streamVideo(client pb.VideoRouteClient, ctx context.Context) error {
 
 	tBuf := randSeq(FRAME_SIZE)
 
-	for i := 0; i < NUM_TEST_FRAMES; i++{
+	for i := 0; i < NUM_TEST_FRAMES; i++ {
 		for j := 0; j < FRAME_SIZE; j = j + CHUNK_SIZE {
-			if j + CHUNK_SIZE >= FRAME_SIZE {
+			if j+CHUNK_SIZE >= FRAME_SIZE {
 				frame.Chunk = tBuf[j:]
 			} else {
-				frame.Chunk = tBuf[j:j+CHUNK_SIZE]
+				frame.Chunk = tBuf[j : j+CHUNK_SIZE]
 			}
 
 			frame.LastChunk = j == 9
@@ -174,12 +173,12 @@ func sendPullVideo(client pb.VideoRouteClient, ctx context.Context) error {
 
 	tBuf := randSeq(FRAME_SIZE)
 
-	for i := 0; i < NUM_TEST_FRAMES; i++{
+	for i := 0; i < NUM_TEST_FRAMES; i++ {
 		for j := 0; j < FRAME_SIZE; j = j + CHUNK_SIZE {
-			if j + CHUNK_SIZE >= FRAME_SIZE {
+			if j+CHUNK_SIZE >= FRAME_SIZE {
 				frame.Chunk = tBuf[j:]
 			} else {
-				frame.Chunk = tBuf[j:j+CHUNK_SIZE]
+				frame.Chunk = tBuf[j : j+CHUNK_SIZE]
 			}
 
 			frame.LastChunk = (j + CHUNK_SIZE) >= FRAME_SIZE
@@ -343,7 +342,7 @@ func main() {
 			fmt.Println("expected subcommand")
 			os.Exit(1)
 	}
-
+	
 	if err != nil {
 		os.Exit(1)
 	}

@@ -5,10 +5,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/CPEN391-Team-4/backend/src/imagestore"
 	"io"
 	"log"
 	"os"
+
+	"github.com/CPEN391-Team-4/backend/src/imagestore"
 
 	"github.com/CPEN391-Team-4/backend/src/logging"
 
@@ -18,7 +19,7 @@ import (
 )
 
 const USERS_TABLE = "users"
-const READ_BUF_SIZE = 1024
+const READ_BUF_SIZE = 4086
 
 type User struct {
 	name       string

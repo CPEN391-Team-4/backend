@@ -12,9 +12,9 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/profiles/latest/cognitiveservices/face"
 	pb "github.com/CPEN391-Team-4/backend/pb/proto"
+	"github.com/CPEN391-Team-4/backend/src/imagestore"
 	"github.com/CPEN391-Team-4/backend/src/logging"
 	"github.com/CPEN391-Team-4/backend/src/notification"
-	"github.com/CPEN391-Team-4/backend/src/imagestore"
 	"github.com/gofrs/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -24,7 +24,7 @@ const userTimeout = 15
 
 //const userToken = "dbW_Mb7ESuqlXw8lxY8YDs:APA91bHoKYX5YE-fWgzTP4uzJjW791Z7UlyW3tRsCoH33z8TUOHcHPRpZ5ZKy5bMXmCAvGzE3P7od9wt8R59X-rMmfDnpjNuVnBpGqqkRQ5J-m3VXcGHQMHdv2isw43-UfUAbBL5EP5y"
 
-const userToken = "cB-goyEtTfq4P3fD3B8sN4:APA91bGF5r8vme7ekiANkrjpt-LiGInATl8utjJI2XuzcJoBbUzEjB8Njl7FcxgFYYgcVAE-B21GyTaGbFUAZcXyPNKykrGDstUJ-gjkDusDwscYO7SDVHOPYJ3WukMdiI44CONQr5Bc"
+const userToken = "fzLRPJPvRHKvIBpKJb_uge:APA91bEDg0hxWa035bYDv2IjaR_PsDJMb8_QJHxefgMuPt-2c1t2EVLGKEt5QFt5hgpt4eKNMdXD-xzg6dYeFNcXG7VPIPIf_GjlgXR6_plosgbMHugZ8vbT6g0axvX-PwaaqBaYCYHC"
 
 func (rs *routeServer) verifyFace(face0 *os.File, faceBuffer *bytes.Buffer) (*face.VerifyResult, error) {
 
