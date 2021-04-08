@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"os"
 	"strconv"
 
@@ -18,6 +19,8 @@ import (
 const READ_BUF_SIZE = 16
 
 const NUM_TEST_FRAMES = 30
+const FRAME_SIZE = 300 * 1024
+const CHUNK_SIZE = 100 * 1024
 
 func verifyFace(client pb.RouteClient, ctx context.Context, file string) error {
 	f, err := os.Open(file)
@@ -114,15 +117,33 @@ func addUser(client pb.RouteClient, ctx context.Context, file string, name strin
 	return nil
 }
 
+var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func randSeq(n int) []byte {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return []byte(string(b))
+}
+
 func streamVideo(client pb.VideoRouteClient, ctx context.Context) error {
 	var frame pb.Frame
 	stream, err := client.StreamVideo(ctx)
 	if err != nil {
 		log.Fatalf("%v.StreamVideo(_) = _, %v", client, err)
 	}
+
+	tBuf := randSeq(FRAME_SIZE)
+
 	for i := 0; i < NUM_TEST_FRAMES; i++{
-		for j := 0; j < 10; j++ {
-			frame.Chunk = []byte{byte(j)}
+		for j := 0; j < FRAME_SIZE; j = j + CHUNK_SIZE {
+			if j + CHUNK_SIZE >= FRAME_SIZE {
+				frame.Chunk = tBuf[j:]
+			} else {
+				frame.Chunk = tBuf[j:j+CHUNK_SIZE]
+			}
+
 			frame.LastChunk = j == 9
 			frame.Number = int32(i)
 			req := pb.Video{Frame: &frame, Name: "Test"}
@@ -151,19 +172,23 @@ func sendPullVideo(client pb.VideoRouteClient, ctx context.Context) error {
 		log.Fatalf("%v.PullVideoStream(_) = _, %v", client, err)
 	}
 
-	for i := 0; i < NUM_TEST_FRAMES+1; i++{
-		if i < NUM_TEST_FRAMES+1 {
-			for j := 0; j < 10; j++ {
-				frame.Chunk = []byte{byte(j)}
-				frame.LastChunk = j == 9
-				frame.Number = int32(i)
-				req := pb.Video{Frame: &frame, Name: "Test"}
-				if err := sendStream.Send(&req); err != nil && err != io.EOF {
-					log.Fatalf("%v.Send(%v) = %v", sendStream, &req, err)
-				}
+	tBuf := randSeq(FRAME_SIZE)
 
-				log.Printf("Sent frame.Number=%v, frame.LastChunk=%v", frame.Number, frame.LastChunk)
+	for i := 0; i < NUM_TEST_FRAMES; i++{
+		for j := 0; j < FRAME_SIZE; j = j + CHUNK_SIZE {
+			if j + CHUNK_SIZE >= FRAME_SIZE {
+				frame.Chunk = tBuf[j:]
+			} else {
+				frame.Chunk = tBuf[j:j+CHUNK_SIZE]
 			}
+
+			frame.LastChunk = (j + CHUNK_SIZE) >= FRAME_SIZE
+			frame.Number = int32(i)
+			req := pb.Video{Frame: &frame, Name: "Test"}
+			if err := sendStream.Send(&req); err != nil && err != io.EOF {
+				log.Fatalf("%v.Send(%v) = %v", sendStream, &req, err)
+			}
+			log.Printf("Sent frame.Number=%v, frame.LastChunk=%v", frame.Number, frame.LastChunk)
 		}
 
 		if i == 0 {
