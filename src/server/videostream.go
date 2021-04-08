@@ -29,12 +29,14 @@ func (rs *routeServer) StreamVideo(stream pb.VideoRoute_StreamVideoServer) error
 	startFrame := true
 	var dirId string
 
+	log.Printf("rs.streams.stream[%s]=%v", DEFAULT_ID, rs.streams.stream[DEFAULT_ID])
 	rs.streams.Lock()
-	if val, ok := rs.streams.stream[DEFAULT_ID]; !ok {
+	if val, ok := rs.streams.stream[DEFAULT_ID]; !ok || rs.streams.stream[DEFAULT_ID] == nil {
 		if val != nil {
 			rs.streams.Unlock()
 			return status.Errorf(codes.Unknown, "Stream id=%s is already live", DEFAULT_ID)
 		}
+		log.Printf("Alloc: rs.streams.stream[%s]", DEFAULT_ID)
 		rs.streams.stream[DEFAULT_ID] = make(chan Frame, VIDEOSTREAM_SIZE)
 	}
 	rs.streams.Unlock()

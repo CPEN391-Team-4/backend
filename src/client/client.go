@@ -219,6 +219,68 @@ func sendPullVideo(client pb.VideoRouteClient, ctx context.Context) error {
 	return nil
 }
 
+func sendPullVideoAsync(client pb.VideoRouteClient, ctx context.Context) error {
+	var frame pb.Frame
+	sendStream, err := client.StreamVideo(ctx)
+	if err != nil {
+		log.Fatalf("%v.StreamVideo(_) = _, %v", client, err)
+	}
+	pullStream, err := client.PullVideoStream(ctx, &pb.PullVideoStreamReq{Id: "default"})
+	if err != nil {
+		log.Fatalf("%v.PullVideoStream(_) = _, %v", client, err)
+	}
+
+	tBuf := randSeq(FRAME_SIZE)
+
+	go func() {
+		for i := 0; i < NUM_TEST_FRAMES; i++ {
+			for j := 0; j < FRAME_SIZE; j = j + CHUNK_SIZE {
+				if j+CHUNK_SIZE >= FRAME_SIZE {
+					frame.Chunk = tBuf[j:]
+				} else {
+					frame.Chunk = tBuf[j : j+CHUNK_SIZE]
+				}
+
+				frame.LastChunk = (j + CHUNK_SIZE) >= FRAME_SIZE
+				frame.Number = int32(i)
+				req := pb.Video{Frame: &frame, Name: "Test"}
+				if err := sendStream.Send(&req); err != nil && err != io.EOF {
+					log.Fatalf("%v.Send(%v) = %v", sendStream, &req, err)
+				}
+				log.Printf("Sent frame.Number=%v, frame.LastChunk=%v", frame.Number, frame.LastChunk)
+			}
+		}
+
+		_, err = sendStream.CloseAndRecv()
+		if err != nil {
+			log.Fatalf("%v.CloseAndRecv() got error %v, want %v", sendStream, err, nil)
+		}
+	}()
+
+	last := 0
+	for {
+
+		reply, err := pullStream.Recv()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			log.Fatalf("%v.Recv() = %v", pullStream, err)
+		}
+		if reply.Closed {
+			log.Printf("Stream closed")
+			break
+		}
+		log.Printf("Recieved %v", int(reply.Video.Frame.Number))
+		if int(reply.Video.Frame.Number) < last {
+			log.Fatalf("Wrong frame, expected (%v >= last=%v)", last, int(reply.Video.Frame.Number))
+		}
+		last++
+	}
+
+	return nil
+}
+
 func main() {
 	environ := environment.Env{}
 	environ.ReadEnv()
@@ -276,7 +338,7 @@ func main() {
 			err = streamVideo(svc, ctx)
 		case "pullvideo":
 			fmt.Println("subcommand 'pullvideo'")
-			err = sendPullVideo(svc, ctx)
+			err = sendPullVideoAsync(svc, ctx)
 		default:
 			fmt.Println("expected subcommand")
 			os.Exit(1)
