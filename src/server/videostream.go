@@ -2,18 +2,23 @@ package main
 
 import (
 	"bytes"
+	"context"
+	"fmt"
+	"io"
+	"log"
+	"sync"
+	"time"
+
 	pb "github.com/CPEN391-Team-4/backend/pb/proto"
 	"github.com/CPEN391-Team-4/backend/src/logging"
 	"github.com/CPEN391-Team-4/backend/src/videostore"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"io"
-	"log"
-	"sync"
 )
 
 const DEFAULT_ID = "default"
 const VIDEOSTREAM_SIZE = 16
+const TIME_INTERVAL = 5
 
 type VideoStreams struct {
 	sync.Mutex
@@ -90,8 +95,8 @@ func (rs *routeServer) StreamVideo(stream pb.VideoRoute_StreamVideoServer) error
 				<-rs.streams.stream[DEFAULT_ID]
 			}
 			rs.streams.stream[DEFAULT_ID] <- Frame{
-				number: int(frameNumber),
-				data:   imgBytes.Bytes(),
+				number:    int(frameNumber),
+				data:      imgBytes.Bytes(),
 				lastChunk: lastChunk,
 			}
 			rs.streams.Unlock()
@@ -99,6 +104,7 @@ func (rs *routeServer) StreamVideo(stream pb.VideoRoute_StreamVideoServer) error
 			startFrame = true
 			imgBytes = bytes.Buffer{}
 		}
+		// time.Sleep(1000 * time.Millisecond)
 	}
 	rs.streams.Lock()
 	rs.streams.stream[DEFAULT_ID] = nil
@@ -108,6 +114,11 @@ func (rs *routeServer) StreamVideo(stream pb.VideoRoute_StreamVideoServer) error
 }
 
 func (rs *routeServer) PullVideoStream(req *pb.PullVideoStreamReq, stream pb.VideoRoute_PullVideoStreamServer) error {
+
+	// set the video_stream_request to true, so de1 can know to start sending the frames
+	rs.video_stream_request = true
+	fmt.Println("video_stream_request was set to ", rs.video_stream_request)
+
 	rs.streams.Lock()
 	val, ok := rs.streams.stream[DEFAULT_ID]
 	if !ok {
@@ -124,6 +135,7 @@ func (rs *routeServer) PullVideoStream(req *pb.PullVideoStreamReq, stream pb.Vid
 		rs.streams.Lock()
 		val, ok := rs.streams.stream[DEFAULT_ID]
 		if !ok || val == nil {
+			fmt.Println("enter the last  frame ")
 			err := stream.Send(&pb.PullVideoStreamResp{
 				Closed: true,
 			})
@@ -136,10 +148,10 @@ func (rs *routeServer) PullVideoStream(req *pb.PullVideoStreamReq, stream pb.Vid
 			continue
 		}
 
-		f := <- rs.streams.stream[DEFAULT_ID]
+		f := <-rs.streams.stream[DEFAULT_ID]
 		err := stream.Send(&pb.PullVideoStreamResp{
 			Video: &pb.Video{
-				Frame:    &pb.Frame{
+				Frame: &pb.Frame{
 					Number:    int32(f.number),
 					LastChunk: f.lastChunk,
 					Chunk:     f.data,
@@ -151,7 +163,29 @@ func (rs *routeServer) PullVideoStream(req *pb.PullVideoStreamReq, stream pb.Vid
 		if err != nil {
 			return err
 		}
+
 	}
 
 	return nil
+}
+
+// receive call from app to end the stream
+func (rs *routeServer) EndPullVideoStream(ctx context.Context, request *pb.EndPullVideoStreamReq) (*pb.EmptyVideoResponse, error) {
+	rs.video_stream_request = false
+	return &pb.EmptyVideoResponse{}, nil
+}
+
+//keep sending the video_stream_request state to de1
+func (rs *routeServer) RequestToStream(request *pb.InitialConnection, stream pb.VideoRoute_RequestToStreamServer) error {
+	if request.Setup == false {
+
+		return status.Errorf(codes.Unknown, "Did not set up the connection.", DEFAULT_ID)
+	}
+	fmt.Println("Successfully set up the connection with de1.")
+	for {
+		time.Sleep(TIME_INTERVAL * time.Second)
+		stream.Send(&pb.Streamrequest{Request: rs.video_stream_request})
+	}
+
+	return status.Errorf(codes.Unknown, "Connection is broken.", DEFAULT_ID)
 }

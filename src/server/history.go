@@ -11,8 +11,6 @@ import (
 
 	pb "github.com/CPEN391-Team-4/backend/pb/proto"
 	_ "github.com/go-sql-driver/mysql"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 const HistoryTable = "history_table"
@@ -104,13 +102,14 @@ func (rs *routeServer) DeleteRecords(ctx context.Context, imageid *pb.ImageLocat
 func (rs *routeServer) GivePermission(ctx context.Context, permission *pb.Permission) (*pb.Empty, error) {
 
 	var err error
-	if permission.Usernames != WaitedGuest {
-		return &pb.Empty{}, status.Errorf(codes.NotFound, "Permission Guest Name did not match!")
-	}
+	// if permission.Usernames != WaitedGuest {
+	// 	return &pb.Empty{}, status.Errorf(codes.NotFound, "Permission Guest Name did not match!")
+	// }
 
 	//set the getPermission map with id , value according to the permission
 
 	//update the permission status in the database
+	fmt.Println("enter give permission")
 	if permission.Permit {
 		rs.waitingUser <- permAllow
 	} else {
