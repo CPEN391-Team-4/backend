@@ -2,20 +2,21 @@ package main
 
 import (
 	"database/sql"
+	"log"
+	"net"
+
 	pb "github.com/CPEN391-Team-4/backend/pb/proto"
 	"github.com/CPEN391-Team-4/backend/src/environment"
 	_ "github.com/go-sql-driver/mysql"
 	"google.golang.org/grpc"
-	"log"
-	"net"
 
 	"github.com/Azure/azure-sdk-for-go/services/cognitiveservices/v1.0/face"
 	"github.com/Azure/go-autorest/autorest"
 )
 
 type Frame struct {
-	number int
-	data []byte
+	number    int
+	data      []byte
 	lastChunk bool
 }
 
@@ -28,21 +29,21 @@ const (
 type routeServer struct {
 	pb.UnimplementedRouteServer
 	pb.UnimplementedVideoRouteServer
-	conn       *sql.DB
-	db         string
-	imagestore string
-	videostore string
-	faceClient *face.Client
-	streams    VideoStreams
-	firebaseKeyfile string
-	waitingUser     chan int
+	conn                 *sql.DB
+	db                   string
+	imagestore           string
+	videostore           string
+	faceClient           *face.Client
+	streams              VideoStreams
+	firebaseKeyfile      string
+	waitingUser          chan int
+	video_stream_request bool
 }
-
 
 func main() {
 	environ := environment.Env{}
 	environ.ReadEnv()
-    log.Println("Listening on:", environ.ServerAddress)
+	log.Println("Listening on:", environ.ServerAddress)
 
 	lis, err := net.Listen("tcp", environ.ServerAddress)
 	if err != nil {
@@ -64,14 +65,15 @@ func main() {
 	faceClient.Authorizer = autorest.NewCognitiveServicesAuthorizer(environ.FaceSubscriptionKey)
 
 	rs := routeServer{
-		conn: db,
-		db: environ.Db,
-		imagestore: environ.Imagestore,
-		videostore: environ.Videostore,
-		firebaseKeyfile: environ.FirebaseKeyfile,
-		faceClient: &faceClient,
-		streams: VideoStreams{stream: make(map[string]chan Frame)},
-		waitingUser:  make(chan int, 1),
+		conn:                 db,
+		db:                   environ.Db,
+		imagestore:           environ.Imagestore,
+		videostore:           environ.Videostore,
+		firebaseKeyfile:      environ.FirebaseKeyfile,
+		faceClient:           &faceClient,
+		streams:              VideoStreams{stream: make(map[string]chan Frame)},
+		waitingUser:          make(chan int, 1),
+		video_stream_request: false,
 	}
 	pb.RegisterRouteServer(grpcServer, &rs)
 	pb.RegisterVideoRouteServer(grpcServer, &rs)
