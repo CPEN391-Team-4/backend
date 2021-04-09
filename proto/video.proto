@@ -50,3 +50,13 @@ service VideoRoute {
   //a grpc call from de1 to set up the connection, and constantly receive state from server.
   rpc RequestToStream(InitialConnection) returns (stream Streamrequest){}
 }
+
+
+
+
+
+
+
+
+
+
