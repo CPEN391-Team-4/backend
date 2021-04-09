@@ -121,11 +121,7 @@ func (rs *routeServer) PullVideoStream(req *pb.PullVideoStreamReq, stream pb.Vid
 	rs.streams.Unlock()
 	for {
 		rs.streams.Lock()
-		log.Printf("Videostream channel size=%v", len(rs.streams.stream[DEFAULT_ID]))
-		if len(rs.streams.stream[DEFAULT_ID]) == 0 {
-			rs.streams.Unlock()
-			continue
-		}
+
 		val, ok := rs.streams.stream[DEFAULT_ID]
 		if !ok || val == nil {
 			err := stream.Send(&pb.PullVideoStreamResp{
@@ -133,6 +129,10 @@ func (rs *routeServer) PullVideoStream(req *pb.PullVideoStreamReq, stream pb.Vid
 			})
 			rs.streams.Unlock()
 			return err
+		}
+		if len(rs.streams.stream[DEFAULT_ID]) == 0 {
+			rs.streams.Unlock()
+			continue
 		}
 		f := <- rs.streams.stream[DEFAULT_ID]
 		err := stream.Send(&pb.PullVideoStreamResp{
