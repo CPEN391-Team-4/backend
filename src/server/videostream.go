@@ -34,14 +34,12 @@ func (rs *routeServer) StreamVideo(stream pb.VideoRoute_StreamVideoServer) error
 	startFrame := true
 	var dirId string
 
-	log.Printf("rs.streams.stream[%s]=%v", DEFAULT_ID, rs.streams.stream[DEFAULT_ID])
 	rs.streams.Lock()
 	if val, ok := rs.streams.stream[DEFAULT_ID]; !ok || rs.streams.stream[DEFAULT_ID] == nil {
 		if val != nil {
 			rs.streams.Unlock()
 			return status.Errorf(codes.Unknown, "Stream id=%s is already live", DEFAULT_ID)
 		}
-		log.Printf("Alloc: rs.streams.stream[%s]", DEFAULT_ID)
 		rs.streams.stream[DEFAULT_ID] = make(chan Frame, VIDEOSTREAM_SIZE)
 	}
 	rs.streams.Unlock()
@@ -106,7 +104,6 @@ func (rs *routeServer) StreamVideo(stream pb.VideoRoute_StreamVideoServer) error
 			startFrame = true
 			imgBytes = bytes.Buffer{}
 		}
-		// time.Sleep(1000 * time.Millisecond)
 	}
 	rs.streams.Lock()
 	rs.streams.stream[DEFAULT_ID] = nil
@@ -116,11 +113,9 @@ func (rs *routeServer) StreamVideo(stream pb.VideoRoute_StreamVideoServer) error
 }
 
 func (rs *routeServer) PullVideoStream(req *pb.PullVideoStreamReq, stream pb.VideoRoute_PullVideoStreamServer) error {
-
-	// set the video_stream_request to true, so de1 can know to start sending the frames
+	fmt.Println("Start live stream request received.")
 	rs.video_stream_request = true
-	fmt.Println("video_stream_request was set to ", rs.video_stream_request)
-
+	time.Sleep(2 * time.Second)
 	rs.streams.Lock()
 	val, ok := rs.streams.stream[DEFAULT_ID]
 	if !ok {
@@ -133,33 +128,20 @@ func (rs *routeServer) PullVideoStream(req *pb.PullVideoStreamReq, stream pb.Vid
 	}
 	rs.streams.Unlock()
 	for {
-		log.Printf("Stream (ln=%v): %v", len(rs.streams.stream[DEFAULT_ID]), rs.streams.stream[DEFAULT_ID])
 		rs.streams.Lock()
-<<<<<<< HEAD
-=======
 
->>>>>>> b621c4b2b7f11ef330b8ae2632fea887ac2dba39
 		val, ok := rs.streams.stream[DEFAULT_ID]
 		if !ok || val == nil {
-			fmt.Println("enter the last  frame ")
 			err := stream.Send(&pb.PullVideoStreamResp{
 				Closed: true,
 			})
 			rs.streams.Unlock()
 			return err
 		}
-<<<<<<< HEAD
-
-=======
->>>>>>> b621c4b2b7f11ef330b8ae2632fea887ac2dba39
 		if len(rs.streams.stream[DEFAULT_ID]) == 0 {
 			rs.streams.Unlock()
 			continue
 		}
-<<<<<<< HEAD
-
-=======
->>>>>>> b621c4b2b7f11ef330b8ae2632fea887ac2dba39
 		f := <-rs.streams.stream[DEFAULT_ID]
 		err := stream.Send(&pb.PullVideoStreamResp{
 			Video: &pb.Video{
@@ -175,7 +157,6 @@ func (rs *routeServer) PullVideoStream(req *pb.PullVideoStreamReq, stream pb.Vid
 		if err != nil {
 			return err
 		}
-
 	}
 
 	return nil
@@ -183,6 +164,7 @@ func (rs *routeServer) PullVideoStream(req *pb.PullVideoStreamReq, stream pb.Vid
 
 // receive call from app to end the stream
 func (rs *routeServer) EndPullVideoStream(ctx context.Context, request *pb.EndPullVideoStreamReq) (*pb.EmptyVideoResponse, error) {
+	fmt.Println("End live stream request received.")
 	rs.video_stream_request = false
 	return &pb.EmptyVideoResponse{}, nil
 }

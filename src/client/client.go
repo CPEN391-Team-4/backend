@@ -16,17 +16,11 @@ import (
 	"google.golang.org/grpc"
 )
 
-const READ_BUF_SIZE = 128
+const READ_BUF_SIZE = 16
 
-<<<<<<< HEAD
-const NUM_TEST_FRAMES = 30
-const FRAME_SIZE = 300 * 1024
-const CHUNK_SIZE = 100 * 1024
-=======
 const NUM_TEST_FRAMES = 4000
 const CHUNK_NUM = 3
 const CHUNK_SIZE = 20 * 1014
->>>>>>> b621c4b2b7f11ef330b8ae2632fea887ac2dba39
 
 func verifyFace(client pb.RouteClient, ctx context.Context, file string) error {
 	f, err := os.Open(file)
@@ -138,25 +132,10 @@ func streamVideo(client pb.VideoRouteClient, ctx context.Context) error {
 	if err != nil {
 		log.Fatalf("%v.StreamVideo(_) = _, %v", client, err)
 	}
-<<<<<<< HEAD
-
-	tBuf := randSeq(FRAME_SIZE)
-
-	for i := 0; i < NUM_TEST_FRAMES; i++ {
-		for j := 0; j < FRAME_SIZE; j = j + CHUNK_SIZE {
-			if j+CHUNK_SIZE >= FRAME_SIZE {
-				frame.Chunk = tBuf[j:]
-			} else {
-				frame.Chunk = tBuf[j : j+CHUNK_SIZE]
-			}
-
-			frame.LastChunk = j == 9
-=======
 	for i := 0; i < NUM_TEST_FRAMES; i++ {
 		for j := 0; j < CHUNK_NUM; j++ {
 			frame.Chunk = randSeq(CHUNK_SIZE)
 			frame.LastChunk = j == CHUNK_NUM-1
->>>>>>> b621c4b2b7f11ef330b8ae2632fea887ac2dba39
 			frame.Number = int32(i)
 			req := pb.Video{Frame: &frame, Name: "Test"}
 			if err := stream.Send(&req); err != nil && err != io.EOF {
@@ -184,9 +163,6 @@ func sendPullVideo(client pb.VideoRouteClient, ctx context.Context) error {
 		log.Fatalf("%v.PullVideoStream(_) = _, %v", client, err)
 	}
 
-<<<<<<< HEAD
-	tBuf := randSeq(FRAME_SIZE)
-=======
 	for i := 0; i < NUM_TEST_FRAMES+1; i++ {
 		if i < NUM_TEST_FRAMES+1 {
 			for j := 0; j < 10; j++ {
@@ -197,23 +173,9 @@ func sendPullVideo(client pb.VideoRouteClient, ctx context.Context) error {
 				if err := sendStream.Send(&req); err != nil && err != io.EOF {
 					log.Fatalf("%v.Send(%v) = %v", sendStream, &req, err)
 				}
->>>>>>> b621c4b2b7f11ef330b8ae2632fea887ac2dba39
 
-	for i := 0; i < NUM_TEST_FRAMES; i++ {
-		for j := 0; j < FRAME_SIZE; j = j + CHUNK_SIZE {
-			if j+CHUNK_SIZE >= FRAME_SIZE {
-				frame.Chunk = tBuf[j:]
-			} else {
-				frame.Chunk = tBuf[j : j+CHUNK_SIZE]
+				log.Printf("Sent frame.Number=%v, frame.LastChunk=%v", frame.Number, frame.LastChunk)
 			}
-
-			frame.LastChunk = (j + CHUNK_SIZE) >= FRAME_SIZE
-			frame.Number = int32(i)
-			req := pb.Video{Frame: &frame, Name: "Test"}
-			if err := sendStream.Send(&req); err != nil && err != io.EOF {
-				log.Fatalf("%v.Send(%v) = %v", sendStream, &req, err)
-			}
-			log.Printf("Sent frame.Number=%v, frame.LastChunk=%v", frame.Number, frame.LastChunk)
 		}
 
 		if i == 0 {
@@ -244,68 +206,6 @@ func sendPullVideo(client pb.VideoRouteClient, ctx context.Context) error {
 	return nil
 }
 
-func sendPullVideoAsync(client pb.VideoRouteClient, ctx context.Context) error {
-	var frame pb.Frame
-	sendStream, err := client.StreamVideo(ctx)
-	if err != nil {
-		log.Fatalf("%v.StreamVideo(_) = _, %v", client, err)
-	}
-	pullStream, err := client.PullVideoStream(ctx, &pb.PullVideoStreamReq{Id: "default"})
-	if err != nil {
-		log.Fatalf("%v.PullVideoStream(_) = _, %v", client, err)
-	}
-
-	tBuf := randSeq(FRAME_SIZE)
-
-	go func() {
-		for i := 0; i < NUM_TEST_FRAMES; i++ {
-			for j := 0; j < FRAME_SIZE; j = j + CHUNK_SIZE {
-				if j+CHUNK_SIZE >= FRAME_SIZE {
-					frame.Chunk = tBuf[j:]
-				} else {
-					frame.Chunk = tBuf[j : j+CHUNK_SIZE]
-				}
-
-				frame.LastChunk = (j + CHUNK_SIZE) >= FRAME_SIZE
-				frame.Number = int32(i)
-				req := pb.Video{Frame: &frame, Name: "Test"}
-				if err := sendStream.Send(&req); err != nil && err != io.EOF {
-					log.Fatalf("%v.Send(%v) = %v", sendStream, &req, err)
-				}
-				log.Printf("Sent frame.Number=%v, frame.LastChunk=%v", frame.Number, frame.LastChunk)
-			}
-		}
-
-		_, err = sendStream.CloseAndRecv()
-		if err != nil {
-			log.Fatalf("%v.CloseAndRecv() got error %v, want %v", sendStream, err, nil)
-		}
-	}()
-
-	last := 0
-	for {
-
-		reply, err := pullStream.Recv()
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			log.Fatalf("%v.Recv() = %v", pullStream, err)
-		}
-		if reply.Closed {
-			log.Printf("Stream closed")
-			break
-		}
-		log.Printf("Recieved %v", int(reply.Video.Frame.Number))
-		if int(reply.Video.Frame.Number) < last {
-			log.Fatalf("Wrong frame, expected (%v >= last=%v)", last, int(reply.Video.Frame.Number))
-		}
-		last++
-	}
-
-	return nil
-}
-
 func main() {
 	environ := environment.Env{}
 	environ.ReadEnv()
@@ -330,51 +230,12 @@ func main() {
 	}
 
 	switch os.Args[1] {
-<<<<<<< HEAD
-		case "verifyface":
-			verifyFaceCmd.Parse(os.Args[2:])
-			fmt.Println("subcommand 'verifyface'")
-			fmt.Println("  tail:", verifyFaceCmd.Args())
-			if len(verifyFaceCmd.Args()) < 1 {
-				fmt.Println("expected subcommand 'verifyface' FILE argument")
-				os.Exit(1)
-			}
-			err = verifyFace(c, ctx, verifyFaceCmd.Args()[0])
-		case "listusers":
-			fmt.Println("subcommand 'listusers'")
-			err = getAllUserNames(c, ctx)
-		case "adduser":
-			fmt.Println("subcommand 'addUser'")
-			if len(addUserCmd.Args()) < 3 {
-				fmt.Println("expected subcommand 'adduser' FILE, NAME, RESTRICTED argument")
-				os.Exit(1)
-			}
-			restr := addUserCmd.Arg(2)
-			resInt, err := strconv.Atoi(restr)
-			if err != nil {
-				os.Exit(1)
-			}
-			restricted := resInt != 0
-			err = addUser(c, ctx, addUserCmd.Arg(0), addUserCmd.Arg(1), restricted)
-			if err != nil {
-				os.Exit(1)
-			}
-		case "streamvideo":
-			fmt.Println("subcommand 'streamvideo'")
-			err = streamVideo(svc, ctx)
-		case "pullvideo":
-			fmt.Println("subcommand 'pullvideo'")
-			err = sendPullVideoAsync(svc, ctx)
-		default:
-			fmt.Println("expected subcommand")
-=======
 	case "verifyface":
 		verifyFaceCmd.Parse(os.Args[2:])
 		fmt.Println("subcommand 'verifyface'")
 		fmt.Println("  tail:", verifyFaceCmd.Args())
 		if len(verifyFaceCmd.Args()) < 1 {
 			fmt.Println("expected subcommand 'verifyface' FILE argument")
->>>>>>> b621c4b2b7f11ef330b8ae2632fea887ac2dba39
 			os.Exit(1)
 		}
 		err = verifyFace(c, ctx, verifyFaceCmd.Args()[0])
@@ -407,7 +268,7 @@ func main() {
 		fmt.Println("expected subcommand")
 		os.Exit(1)
 	}
-	
+
 	if err != nil {
 		os.Exit(1)
 	}
