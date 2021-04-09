@@ -30,7 +30,7 @@ func (rs *routeServer) StreamVideo(stream pb.VideoRoute_StreamVideoServer) error
 	var dirId string
 
 	rs.streams.Lock()
-	if val, ok := rs.streams.stream[DEFAULT_ID]; !ok {
+	if val, ok := rs.streams.stream[DEFAULT_ID]; !ok || rs.streams.stream[DEFAULT_ID] == nil {
 		if val != nil {
 			rs.streams.Unlock()
 			return status.Errorf(codes.Unknown, "Stream id=%s is already live", DEFAULT_ID)
