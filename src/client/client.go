@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"os"
 	"strconv"
 
@@ -18,6 +19,8 @@ import (
 const READ_BUF_SIZE = 16
 
 const NUM_TEST_FRAMES = 30
+const CHUNK_NUM = 3
+const CHUNK_SIZE = 3 * 1014
 
 func verifyFace(client pb.RouteClient, ctx context.Context, file string) error {
 	f, err := os.Open(file)
@@ -114,6 +117,16 @@ func addUser(client pb.RouteClient, ctx context.Context, file string, name strin
 	return nil
 }
 
+var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func randSeq(n int) []byte {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return []byte(string(b))
+}
+
 func streamVideo(client pb.VideoRouteClient, ctx context.Context) error {
 	var frame pb.Frame
 	stream, err := client.StreamVideo(ctx)
@@ -121,9 +134,9 @@ func streamVideo(client pb.VideoRouteClient, ctx context.Context) error {
 		log.Fatalf("%v.StreamVideo(_) = _, %v", client, err)
 	}
 	for i := 0; i < NUM_TEST_FRAMES; i++{
-		for j := 0; j < 10; j++ {
-			frame.Chunk = []byte{byte(j)}
-			frame.LastChunk = j == 9
+		for j := 0; j < CHUNK_NUM; j++ {
+			frame.Chunk = randSeq(CHUNK_SIZE)
+			frame.LastChunk = j == CHUNK_NUM-1
 			frame.Number = int32(i)
 			req := pb.Video{Frame: &frame, Name: "Test"}
 			if err := stream.Send(&req); err != nil && err != io.EOF {
