@@ -17,7 +17,7 @@ import (
 
 const READ_BUF_SIZE = 16
 
-const NUM_TEST_FRAMES = 30
+const NUM_TEST_FRAMES = 3000
 
 func verifyFace(client pb.RouteClient, ctx context.Context, file string) error {
 	f, err := os.Open(file)
@@ -60,7 +60,6 @@ func verifyFace(client pb.RouteClient, ctx context.Context, file string) error {
 
 	return nil
 }
-
 
 func getAllUserNames(c pb.RouteClient, ctx context.Context) error {
 	users, err := c.GetAllUserNames(ctx, &pb.Empty{})
@@ -120,7 +119,7 @@ func streamVideo(client pb.VideoRouteClient, ctx context.Context) error {
 	if err != nil {
 		log.Fatalf("%v.StreamVideo(_) = _, %v", client, err)
 	}
-	for i := 0; i < NUM_TEST_FRAMES; i++{
+	for i := 0; i < NUM_TEST_FRAMES; i++ {
 		for j := 0; j < 10; j++ {
 			frame.Chunk = []byte{byte(j)}
 			frame.LastChunk = j == 9
@@ -151,7 +150,7 @@ func sendPullVideo(client pb.VideoRouteClient, ctx context.Context) error {
 		log.Fatalf("%v.PullVideoStream(_) = _, %v", client, err)
 	}
 
-	for i := 0; i < NUM_TEST_FRAMES+1; i++{
+	for i := 0; i < NUM_TEST_FRAMES+1; i++ {
 		if i < NUM_TEST_FRAMES+1 {
 			for j := 0; j < 10; j++ {
 				frame.Chunk = []byte{byte(j)}
@@ -218,43 +217,43 @@ func main() {
 	}
 
 	switch os.Args[1] {
-		case "verifyface":
-			verifyFaceCmd.Parse(os.Args[2:])
-			fmt.Println("subcommand 'verifyface'")
-			fmt.Println("  tail:", verifyFaceCmd.Args())
-			if len(verifyFaceCmd.Args()) < 1 {
-				fmt.Println("expected subcommand 'verifyface' FILE argument")
-				os.Exit(1)
-			}
-			err = verifyFace(c, ctx, verifyFaceCmd.Args()[0])
-		case "listusers":
-			fmt.Println("subcommand 'listusers'")
-			err = getAllUserNames(c, ctx)
-		case "adduser":
-			fmt.Println("subcommand 'addUser'")
-			if len(addUserCmd.Args()) < 3 {
-				fmt.Println("expected subcommand 'adduser' FILE, NAME, RESTRICTED argument")
-				os.Exit(1)
-			}
-			restr := addUserCmd.Arg(2)
-			resInt, err := strconv.Atoi(restr)
-			if err != nil {
-				os.Exit(1)
-			}
-			restricted := resInt != 0
-			err = addUser(c, ctx, addUserCmd.Arg(0), addUserCmd.Arg(1), restricted)
-			if err != nil {
-				os.Exit(1)
-			}
-		case "streamvideo":
-			fmt.Println("subcommand 'streamvideo'")
-			err = streamVideo(svc, ctx)
-		case "pullvideo":
-			fmt.Println("subcommand 'pullvideo'")
-			err = sendPullVideo(svc, ctx)
-		default:
-			fmt.Println("expected subcommand")
+	case "verifyface":
+		verifyFaceCmd.Parse(os.Args[2:])
+		fmt.Println("subcommand 'verifyface'")
+		fmt.Println("  tail:", verifyFaceCmd.Args())
+		if len(verifyFaceCmd.Args()) < 1 {
+			fmt.Println("expected subcommand 'verifyface' FILE argument")
 			os.Exit(1)
+		}
+		err = verifyFace(c, ctx, verifyFaceCmd.Args()[0])
+	case "listusers":
+		fmt.Println("subcommand 'listusers'")
+		err = getAllUserNames(c, ctx)
+	case "adduser":
+		fmt.Println("subcommand 'addUser'")
+		if len(addUserCmd.Args()) < 3 {
+			fmt.Println("expected subcommand 'adduser' FILE, NAME, RESTRICTED argument")
+			os.Exit(1)
+		}
+		restr := addUserCmd.Arg(2)
+		resInt, err := strconv.Atoi(restr)
+		if err != nil {
+			os.Exit(1)
+		}
+		restricted := resInt != 0
+		err = addUser(c, ctx, addUserCmd.Arg(0), addUserCmd.Arg(1), restricted)
+		if err != nil {
+			os.Exit(1)
+		}
+	case "streamvideo":
+		fmt.Println("subcommand 'streamvideo'")
+		err = streamVideo(svc, ctx)
+	case "pullvideo":
+		fmt.Println("subcommand 'pullvideo'")
+		err = sendPullVideo(svc, ctx)
+	default:
+		fmt.Println("expected subcommand")
+		os.Exit(1)
 	}
 
 	if err != nil {
