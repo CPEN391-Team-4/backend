@@ -135,6 +135,10 @@ func (rs *routeServer) PullVideoStream(req *pb.PullVideoStreamReq, stream pb.Vid
 	for {
 		log.Printf("Stream (ln=%v): %v", len(rs.streams.stream[DEFAULT_ID]), rs.streams.stream[DEFAULT_ID])
 		rs.streams.Lock()
+<<<<<<< HEAD
+=======
+
+>>>>>>> b621c4b2b7f11ef330b8ae2632fea887ac2dba39
 		val, ok := rs.streams.stream[DEFAULT_ID]
 		if !ok || val == nil {
 			fmt.Println("enter the last  frame ")
@@ -144,12 +148,18 @@ func (rs *routeServer) PullVideoStream(req *pb.PullVideoStreamReq, stream pb.Vid
 			rs.streams.Unlock()
 			return err
 		}
+<<<<<<< HEAD
 
+=======
+>>>>>>> b621c4b2b7f11ef330b8ae2632fea887ac2dba39
 		if len(rs.streams.stream[DEFAULT_ID]) == 0 {
 			rs.streams.Unlock()
 			continue
 		}
+<<<<<<< HEAD
 
+=======
+>>>>>>> b621c4b2b7f11ef330b8ae2632fea887ac2dba39
 		f := <-rs.streams.stream[DEFAULT_ID]
 		err := stream.Send(&pb.PullVideoStreamResp{
 			Video: &pb.Video{
