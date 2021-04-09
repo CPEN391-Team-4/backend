@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/CPEN391-Team-4/backend/src/notification"
 	"io"
 	"io/ioutil"
 	"log"
@@ -12,9 +13,8 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/profiles/latest/cognitiveservices/face"
 	pb "github.com/CPEN391-Team-4/backend/pb/proto"
-	"github.com/CPEN391-Team-4/backend/src/logging"
-	"github.com/CPEN391-Team-4/backend/src/notification"
 	"github.com/CPEN391-Team-4/backend/src/imagestore"
+	"github.com/CPEN391-Team-4/backend/src/logging"
 	"github.com/gofrs/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -42,6 +42,10 @@ func (rs *routeServer) verifyFace(face0 *os.File, faceBuffer *bytes.Buffer) (*fa
 	if err != nil {
 		return nil, err
 	}
+	if len(*detectedVerifyFaces0.Value) <= 0 {
+		return nil, fmt.Errorf("no face in image")
+	}
+
 	dVFaceIds0 := *detectedVerifyFaces0.Value
 	imageSource0Id := dVFaceIds0[0].FaceID
 
@@ -52,6 +56,9 @@ func (rs *routeServer) verifyFace(face0 *os.File, faceBuffer *bytes.Buffer) (*fa
 	detectedVerifyFaces, err := rs.faceClient.DetectWithStream(faceContext, face1Closer, &returnFaceIDVerify, &returnFaceLandmarksVerify, nil, face.Recognition03, &returnRecognitionModelVerify, face.Detection02)
 	if err != nil {
 		return nil, err
+	}
+	if len(*detectedVerifyFaces.Value) <= 0 {
+		return nil, fmt.Errorf("no face in image")
 	}
 
 	dVFaces := *detectedVerifyFaces.Value
@@ -182,7 +189,6 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 		return logging.LogError(status.Errorf(codes.Internal, "cannot add record to db: %v", err))
 	}
 
-	// TODO: tok
 	_, err = notification.Send(userToken, "Detected human motion", fmt.Sprintf("user=%s", resp.User), rs.firebaseKeyfile)
 	if err != nil {
 		return logging.LogError(status.Errorf(codes.Internal, "cannot send notification: %v", err))
@@ -192,11 +198,17 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 	select {
 	case res := <-rs.waitingUser:
 		fmt.Println("Success:", res)
-		rs.UpdateRecordStatusToDB(recordID, "Agree")
+		err := rs.UpdateRecordStatusToDB(recordID, "Agree")
+		if err != nil {
+			return err
+		}
 		resp.Accept = res == permAllow
 	case <-time.After(userTimeout * time.Second):
 		log.Println("timeout waiting on notification response")
-		rs.UpdateRecordStatusToDB(recordID, "Deny")
+		err := rs.UpdateRecordStatusToDB(recordID, "Deny")
+		if err != nil {
+			return err
+		}
 		resp.User = ""
 		resp.Confidence = 0
 		resp.Accept = false
