@@ -18,7 +18,7 @@ import (
 
 const DEFAULT_ID = "default"
 const VIDEOSTREAM_SIZE = 16
-const TIME_INTERVAL = 5
+const TIME_INTERVAL = 3
 
 type VideoStreams struct {
 	sync.Mutex
@@ -113,6 +113,10 @@ func (rs *routeServer) StreamVideo(stream pb.VideoRoute_StreamVideoServer) error
 }
 
 func (rs *routeServer) PullVideoStream(req *pb.PullVideoStreamReq, stream pb.VideoRoute_PullVideoStreamServer) error {
+	fmt.Println("Start live stream request received.")
+	rs.video_stream_request = true
+	time.Sleep(5 * time.Second)
+
 	rs.streams.Lock()
 	val, ok := rs.streams.stream[DEFAULT_ID]
 	if !ok {
@@ -161,6 +165,7 @@ func (rs *routeServer) PullVideoStream(req *pb.PullVideoStreamReq, stream pb.Vid
 
 // receive call from app to end the stream
 func (rs *routeServer) EndPullVideoStream(ctx context.Context, request *pb.EndPullVideoStreamReq) (*pb.EmptyVideoResponse, error) {
+	fmt.Println("End live stream request received.")
 	rs.video_stream_request = false
 	return &pb.EmptyVideoResponse{}, nil
 }
