@@ -26,7 +26,6 @@ message FaceVerificationResp {
   bool accept = 3;
 }
 
-
 message HistoryRecord{
   string name = 1;
   string status = 2;

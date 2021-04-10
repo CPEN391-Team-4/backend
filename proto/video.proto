@@ -48,7 +48,7 @@ service VideoRoute {
   rpc EndPullVideoStream(EndPullVideoStreamReq) returns(EmptyVideoResponse){}
 
   //a grpc call from de1 to set up the connection, and constantly receive state from server.
-  rpc RequestToStream(InitialConnection) returns (stream Streamrequest){}
+  rpc RequestToStream(stream InitialConnection) returns (stream Streamrequest){}
 }
 
 

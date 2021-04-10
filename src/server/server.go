@@ -37,7 +37,7 @@ type routeServer struct {
 	streams              VideoStreams
 	firebaseKeyfile      string
 	waitingUser          chan int
-	video_stream_request bool
+	videoStreamRequest   VideoStreamRequest
 }
 
 func main() {
@@ -73,7 +73,10 @@ func main() {
 		faceClient:           &faceClient,
 		streams:              VideoStreams{stream: make(map[string]chan Frame)},
 		waitingUser:          make(chan int, 1),
-		video_stream_request: false,
+		videoStreamRequest:   VideoStreamRequest{
+			requested: make(chan bool, 1),
+			up: make(chan bool, 1),
+		},
 	}
 	pb.RegisterRouteServer(grpcServer, &rs)
 	pb.RegisterVideoRouteServer(grpcServer, &rs)
