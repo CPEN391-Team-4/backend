@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/CPEN391-Team-4/backend/src/notification"
 	"io"
 	"io/ioutil"
 	"log"
@@ -13,7 +12,6 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/profiles/latest/cognitiveservices/face"
 	pb "github.com/CPEN391-Team-4/backend/pb/proto"
-	"github.com/CPEN391-Team-4/backend/src/imagestore"
 	"github.com/CPEN391-Team-4/backend/src/logging"
 	"github.com/CPEN391-Team-4/backend/src/notification"
 	"github.com/CPEN391-Team-4/backend/src/imagestore"
