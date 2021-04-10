@@ -69,6 +69,7 @@ func (rs *routeServer) getAllUsersFromDB() ([]User, error) {
 			return nil, err
 		}
 		users = append(users, u)
+		fmt.Println("user=", u.name, "imageid=", u.image_id)
 	}
 	return users, nil
 }

@@ -80,6 +80,7 @@ type VerifyFaceResult struct {
 func (rs *routeServer) verifyFaceAsync(user *User, faceBuffer *bytes.Buffer) <-chan VerifyFaceResult {
 	r := make(chan VerifyFaceResult)
 	go func() {
+		fmt.Println("user=", user.name, "imageid=", user.image_id)
 		defer close(r)
 		var res VerifyFaceResult
 		if len(user.image_id) <= 0 {
@@ -194,7 +195,7 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 			}
 		}
 
-		fmt.Println("user=", user.name, "conf=", *res.result.Confidence)
+		fmt.Println("user=", user.name, "conf=", *res.result.Confidence, "imageid=", user.image_id)
 	}
 
 	fmt.Println("Finishing verify face.")
