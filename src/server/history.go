@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"github.com/CPEN391-Team-4/backend/src/logging"
 	"io"
 	"log"
 	"os"
@@ -57,9 +58,11 @@ func (rs *routeServer) GetHistoryRecorded(ctx context.Context, timestamp *pb.Tim
 
 //get history image from the ImageStore
 func (rs *routeServer) GetHistoryImage(imageuuid *pb.ImageLocation, stream pb.Route_GetHistoryImageServer) error {
-	f, err := os.Open(rs.imagestore + "/" + imageuuid.Address)
+	file := rs.imagestore + "/" + imageuuid.Address
+	f, err := os.Open(file)
+	log.Printf("Requested file=%s", file)
 	if err != nil {
-		return err
+		return logging.LogError(err)
 	}
 
 	defer f.Close()
@@ -86,7 +89,7 @@ func (rs *routeServer) GetHistoryImage(imageuuid *pb.ImageLocation, stream pb.Ro
 		}
 		sizeTotal += n
 	}
-	fmt.Println("Sent %d bytes", sizeTotal)
+	fmt.Printf("Sent %d bytes", sizeTotal)
 	return nil
 }
 
