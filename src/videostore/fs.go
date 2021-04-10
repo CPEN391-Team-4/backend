@@ -17,7 +17,7 @@ type FileWriter struct {
 }
 
 func (fw *FileWriter) Save(dir string, frameNum int, data bytes.Buffer) (string, error) {
-	subPath := dir + "/" + strconv.Itoa(frameNum) + ".raw"
+	subPath := dir + "/" + strconv.Itoa(frameNum) + ".jpg"
 	path := fw.Directory + "/" + subPath
 	fmt.Println("Saving file to", path)
 
