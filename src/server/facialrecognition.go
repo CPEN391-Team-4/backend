@@ -77,7 +77,7 @@ type VerifyFaceResult struct {
 	err    error
 }
 
-func (rs *routeServer) verifyFaceAsync(user *User, faceBuffer *bytes.Buffer) <-chan VerifyFaceResult {
+func (rs *routeServer) verifyFaceAsync(user User, faceBuffer *bytes.Buffer) <-chan VerifyFaceResult {
 	r := make(chan VerifyFaceResult)
 	go func() {
 		fmt.Println("user=", user.name, "imageid=", user.image_id)
@@ -168,7 +168,7 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 		if n != imageSize {
 			return logging.LogError(status.Errorf(codes.Internal, "invalid buffer copy: %v != %v", n, imageSize))
 		}
-		resChan[i] = rs.verifyFaceAsync(&user, bytes.NewBuffer(imgCopyBuf))
+		resChan[i] = rs.verifyFaceAsync(user, bytes.NewBuffer(imgCopyBuf))
 	}
 
 	dbuser := "Stranger"
