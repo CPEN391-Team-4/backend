@@ -193,6 +193,8 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 				resp.Confidence = float32(*res.result.Confidence)
 			}
 		}
+
+		fmt.Println("user=", user.name, "conf=", *res.result.Confidence)
 	}
 
 	fmt.Println("Finishing verify face.")
