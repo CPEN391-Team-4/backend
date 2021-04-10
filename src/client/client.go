@@ -11,6 +11,7 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
+	"time"
 
 	pb "github.com/CPEN391-Team-4/backend/pb/proto"
 	"github.com/CPEN391-Team-4/backend/src/environment"
@@ -64,7 +65,7 @@ func verifyFace(client pb.RouteClient, ctx context.Context, file string) error {
 
 	return nil
 }
-func streamVideo(client pb.VideoRouteClient, ctx context.Context, file string) error {
+func streamVideo(client pb.VideoRouteClient, ctx context.Context, file string, streaming chan bool) error {
 
 	frame := pb.Frame{}
 	stream, err := client.StreamVideo(ctx)
@@ -89,7 +90,6 @@ func streamVideo(client pb.VideoRouteClient, ctx context.Context, file string) e
 			frame.Number = int32(i)
 
 			req := pb.Video{Frame: &frame, Name: "Test"}
-			log.Printf("Sent=(%v)", frame.Number)
 			if err := stream.Send(&req); err != nil && err != io.EOF {
 				log.Fatalf("%v.Send(%v) = %v", stream, &req, err)
 			}
@@ -97,6 +97,9 @@ func streamVideo(client pb.VideoRouteClient, ctx context.Context, file string) e
 			if loc > len(buf) {
 				break
 			}
+		}
+		if i == 0 && stream != nil {
+			streaming <- true
 		}
 	}
 
@@ -252,6 +255,76 @@ func sendPullVideo(client pb.VideoRouteClient, ctx context.Context) error {
 	return nil
 }
 
+
+func requestToStream(client pb.VideoRouteClient, ctx context.Context, file string) error {
+	reqStream, err := client.RequestToStream(ctx)
+	if err != nil {
+		log.Fatalf("%v.RequestToStream(_) = _, %v", client, err)
+	}
+	up := make(chan bool)
+	streaming := make(chan bool)
+
+	go func() {
+		for {
+			streamNow := <- up
+			if streamNow {
+				log.Printf("streamVideo")
+				err := streamVideo(client, ctx, file, streaming)
+				if err != nil {
+					log.Fatal(err)
+				}
+			} else {
+				log.Printf("Stream done")
+				return
+			}
+		}
+	}()
+
+	go func() {
+		for {
+			reply, err := reqStream.Recv()
+			if reply.Request {
+				up <- true
+			}
+
+			<- streaming
+			err = reqStream.Send(&pb.InitialConnection{Setup: true})
+			log.Printf("Send setup true")
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+	}()
+
+	<-time.After(10 * time.Second)
+
+	pullStream, err := client.PullVideoStream(ctx, &pb.PullVideoStreamReq{Id: "default"})
+	if err != nil {
+		log.Fatalf("%v.PullVideoStream(_) = _, %v", client, err)
+	}
+
+	for {
+		reply, err := pullStream.Recv()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			log.Fatalf("%v.Recv() = %v", pullStream, err)
+		}
+		if reply.Video != nil && reply.Video.Frame != nil {
+			log.Printf("Recieved Frame.Number=%v", reply.Video.Frame.Number)
+		}
+
+		if reply.Closed {
+			log.Printf("Stream closed")
+			break
+		}
+	}
+
+	return nil
+}
+
+
 func main() {
 	environ := environment.Env{}
 	environ.ReadEnv()
@@ -266,13 +339,14 @@ func main() {
 
 	verifyFaceCmd := flag.NewFlagSet("verifyface", flag.ExitOnError)
 	streamVideoCmd := flag.NewFlagSet("streamvideo", flag.ExitOnError)
+	requestStreamVideoCmd := flag.NewFlagSet("requeststream", flag.ExitOnError)
 	addUserCmd := flag.NewFlagSet("adduser", flag.ExitOnError)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	if len(os.Args) < 2 {
-		fmt.Println("expected subcommand 'verifyface' | 'addUser' | 'listusers' | 'streamvideo")
+		fmt.Println("expected subcommand 'verifyface' | 'addUser' | 'listusers' | 'streamvideo' | 'requeststream'")
 		os.Exit(1)
 	}
 
@@ -313,7 +387,16 @@ func main() {
 			fmt.Println("expected subcommand 'streamvideo' FILE argument")
 			os.Exit(1)
 		}
-		err = streamVideo(svc, ctx, streamVideoCmd.Args()[0])
+		err = streamVideo(svc, ctx, streamVideoCmd.Args()[0], nil)
+	case "requeststream":
+		fmt.Println("subcommand 'requeststream'")
+		_ = requestStreamVideoCmd.Parse(os.Args[2:])
+		fmt.Println("  tail:", requestStreamVideoCmd.Args())
+		if len(requestStreamVideoCmd.Args()) < 1 {
+			fmt.Println("expected subcommand 'requeststream' FILE argument")
+			os.Exit(1)
+		}
+		err = requestToStream(svc, ctx, requestStreamVideoCmd.Args()[0])
 	case "pullvideo":
 		fmt.Println("subcommand 'pullvideo'")
 		err = sendPullVideo(svc, ctx)
