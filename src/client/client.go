@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"os"
@@ -55,6 +56,50 @@ func verifyFace(client pb.RouteClient, ctx context.Context, file string) error {
 		}
 		sizeTotal += n
 	}
+	reply, err := stream.CloseAndRecv()
+	if err != nil {
+		log.Fatalf("%v.CloseAndRecv() got error %v, want %v", stream, err, nil)
+	}
+	log.Printf("Route summary: %v, %v", reply.Accept, reply.Confidence)
+
+	return nil
+}
+func streamVideo(client pb.VideoRouteClient, ctx context.Context, file string) error {
+
+	frame := pb.Frame{}
+	stream, err := client.StreamVideo(ctx)
+	if err != nil {
+		log.Fatalf("%v.StreamVideo(_) = _, %v", client, err)
+	}
+	buf, err := ioutil.ReadFile(file)
+	if err != nil {
+		return err
+	}
+	for i := 0; i < 10; i++ {
+		loc := 0
+		for {
+			if loc + READ_BUF_SIZE > len(buf) {
+				frame.Chunk = buf[loc:]
+				frame.LastChunk = true
+			} else {
+				frame.Chunk = buf[loc:loc+READ_BUF_SIZE]
+				frame.LastChunk = false
+			}
+
+			frame.Number = int32(i)
+
+			req := pb.Video{Frame: &frame, Name: "Test"}
+			log.Printf("Sent=(%v)", frame.Number)
+			if err := stream.Send(&req); err != nil && err != io.EOF {
+				log.Fatalf("%v.Send(%v) = %v", stream, &req, err)
+			}
+			loc += READ_BUF_SIZE
+			if loc > len(buf) {
+				break
+			}
+		}
+	}
+
 	reply, err := stream.CloseAndRecv()
 	if err != nil {
 		log.Fatalf("%v.CloseAndRecv() got error %v, want %v", stream, err, nil)
@@ -126,8 +171,9 @@ func randSeq(n int) []byte {
 	return []byte(string(b))
 }
 
-func streamVideo(client pb.VideoRouteClient, ctx context.Context) error {
+func streamVideoOld(client pb.VideoRouteClient, ctx context.Context) error {
 	var frame pb.Frame
+
 	stream, err := client.StreamVideo(ctx)
 	if err != nil {
 		log.Fatalf("%v.StreamVideo(_) = _, %v", client, err)
@@ -219,6 +265,7 @@ func main() {
 	svc := pb.NewVideoRouteClient(conn)
 
 	verifyFaceCmd := flag.NewFlagSet("verifyface", flag.ExitOnError)
+	streamVideoCmd := flag.NewFlagSet("streamvideo", flag.ExitOnError)
 	addUserCmd := flag.NewFlagSet("adduser", flag.ExitOnError)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -260,7 +307,13 @@ func main() {
 		}
 	case "streamvideo":
 		fmt.Println("subcommand 'streamvideo'")
-		err = streamVideo(svc, ctx)
+		_ = streamVideoCmd.Parse(os.Args[2:])
+		fmt.Println("  tail:", streamVideoCmd.Args())
+		if len(streamVideoCmd.Args()) < 1 {
+			fmt.Println("expected subcommand 'streamvideo' FILE argument")
+			os.Exit(1)
+		}
+		err = streamVideo(svc, ctx, streamVideoCmd.Args()[0])
 	case "pullvideo":
 		fmt.Println("subcommand 'pullvideo'")
 		err = sendPullVideo(svc, ctx)
