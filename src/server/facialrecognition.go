@@ -143,6 +143,18 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 			imageSize += size
 		}
 	}
+	fw := imagestore.FileWriter{Directory: rs.imagestore}
+
+	imgCopy := make([]byte, imageSize)
+	n := copy(imgCopy, imgBytes.Bytes())
+	if n != imageSize {
+		return logging.LogError(status.Errorf(codes.Internal, "invalid buffer copy: %v != %v", n, imageSize))
+	}
+	imgId, err := fw.Save(".jpg", imgBytes)
+	if err != nil {
+		return logging.LogError(status.Errorf(codes.Internal, "cannot save image: %v", err))
+	}
+
 	var resp pb.FaceVerificationResp
 	users, err := rs.getAllUsersFromDB()
 	if err != nil {
@@ -150,7 +162,12 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 	}
 	resChan := make([]<-chan VerifyFaceResult, len(users))
 	for i, user := range users {
-		resChan[i] = rs.verifyFaceAsync(&user, &imgBytes)
+		imgCopyBuf := make([]byte, imageSize)
+		n := copy(imgCopyBuf, imgCopy)
+		if n != imageSize {
+			return logging.LogError(status.Errorf(codes.Internal, "invalid buffer copy: %v != %v", n, imageSize))
+		}
+		resChan[i] = rs.verifyFaceAsync(&user, bytes.NewBuffer(imgCopyBuf))
 	}
 
 	dbuser := "Stranger"
@@ -173,12 +190,6 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 	}
 
 	fmt.Println("Finishing verify face.")
-	fw := imagestore.FileWriter{Directory: rs.imagestore}
-
-	imgId, err := fw.Save(".jpg", imgBytes)
-	if err != nil {
-		return logging.LogError(status.Errorf(codes.Internal, "cannot save image: %v", err))
-	}
 
 	recordID, err := rs.AddRecordToDB(dbuser, imgId)
 	if err != nil {
