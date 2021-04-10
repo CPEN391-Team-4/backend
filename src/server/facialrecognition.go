@@ -20,7 +20,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const userTimeout = 15
+const userTimeout = 120
 
 func (rs *routeServer) verifyFace(face0 *os.File, faceBuffer *bytes.Buffer) (*face.VerifyResult, error) {
 
