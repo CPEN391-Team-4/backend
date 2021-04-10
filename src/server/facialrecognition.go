@@ -175,7 +175,7 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 	fmt.Println("Finishing verify face.")
 	fw := imagestore.FileWriter{Directory: rs.imagestore}
 
-	imgId, err := fw.Save(".raw", imgBytes)
+	imgId, err := fw.Save(".jpg", imgBytes)
 	if err != nil {
 		return logging.LogError(status.Errorf(codes.Internal, "cannot save image: %v", err))
 	}
