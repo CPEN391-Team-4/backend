@@ -22,10 +22,6 @@ import (
 
 const userTimeout = 15
 
-//const userToken = "dbW_Mb7ESuqlXw8lxY8YDs:APA91bHoKYX5YE-fWgzTP4uzJjW791Z7UlyW3tRsCoH33z8TUOHcHPRpZ5ZKy5bMXmCAvGzE3P7od9wt8R59X-rMmfDnpjNuVnBpGqqkRQ5J-m3VXcGHQMHdv2isw43-UfUAbBL5EP5y"
-
-const userToken = "fzLRPJPvRHKvIBpKJb_uge:APA91bEDg0hxWa035bYDv2IjaR_PsDJMb8_QJHxefgMuPt-2c1t2EVLGKEt5QFt5hgpt4eKNMdXD-xzg6dYeFNcXG7VPIPIf_GjlgXR6_plosgbMHugZ8vbT6g0axvX-PwaaqBaYCYHC"
-
 func (rs *routeServer) verifyFace(face0 *os.File, faceBuffer *bytes.Buffer) (*face.VerifyResult, error) {
 
 	// A global context for use in all samples
@@ -189,9 +185,15 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 		return logging.LogError(status.Errorf(codes.Internal, "cannot add record to db: %v", err))
 	}
 
-	_, err = notification.Send(userToken, "Detected human motion", fmt.Sprintf("user=%s", resp.User), rs.firebaseKeyfile)
+	tokens, err := rs.GetAllTokens()
 	if err != nil {
-		return logging.LogError(status.Errorf(codes.Internal, "cannot send notification: %v", err))
+		return logging.LogError(status.Errorf(codes.Internal, "cannot get tokens: %v", err))
+	}
+	for _, t := range tokens {
+		_, err = notification.Send(t, "Detected human motion", fmt.Sprintf("user=%s", resp.User), rs.firebaseKeyfile)
+		if err != nil {
+			_ = logging.LogError(status.Errorf(codes.Internal, "cannot send notification: %v", err))
+		}
 	}
 
 	// Wait for response
@@ -210,7 +212,6 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 			return err
 		}
 		resp.User = ""
-		resp.Confidence = 0
 		resp.Accept = false
 	}
 
