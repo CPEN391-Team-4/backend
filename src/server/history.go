@@ -89,7 +89,7 @@ func (rs *routeServer) GetHistoryImage(imageuuid *pb.ImageLocation, stream pb.Ro
 		}
 		sizeTotal += n
 	}
-	fmt.Printf("Sent %d bytes", sizeTotal)
+
 	return nil
 }
 

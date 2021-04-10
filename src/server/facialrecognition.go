@@ -172,6 +172,8 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 
 	dbuser := "Stranger"
 
+	var highestConf *face.VerifyResult = nil
+
 	for i, user := range users {
 		res := <-resChan[i]
 		if res.err != nil {
@@ -181,11 +183,15 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 			continue
 		}
 		if *res.result.IsIdentical {
-			fmt.Println(user.name)
-			dbuser = user.name
-			resp.User = user.name
-			resp.Confidence = float32(*res.result.Confidence)
-			break
+			fmt.Println("IsIdentical user=", user.name)
+			if highestConf == nil {
+				highestConf = res.result
+			} else if *highestConf.Confidence > *res.result.Confidence {
+				highestConf = res.result
+				dbuser = user.name
+				resp.User = user.name
+				resp.Confidence = float32(*res.result.Confidence)
+			}
 		}
 	}
 
