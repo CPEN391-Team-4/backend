@@ -59,6 +59,15 @@ message DeviceVerify{
   string token = 2;
 }
 
+message BluetoothInfo{
+  string de1ID = 1;
+  string username = 2;
+}
+
+message MainUser{
+  string username = 1;
+}
+
 service Route {
   rpc AddTrustedUser(stream User) returns (Empty) {}
   rpc UpdateTrustedUser(stream User) returns (Empty) {}
@@ -80,7 +89,13 @@ service Route {
 
   //update the device token 
   rpc UpdateDeviceToken(DeviceVerify) returns (Empty){}
+  
+  //update the de1 id and username
+  rpc SendDe1ID(BluetoothInfo) returns (Empty){}
 
+  //get the de1 id and username
+  rpc GetDe1ID(MainUser) returns (BluetoothInfo){}
+ 
 }
 
 

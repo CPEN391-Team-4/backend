@@ -34,6 +34,10 @@ type RouteClient interface {
 	GetLatestImage(ctx context.Context, in *Empty, opts ...grpc.CallOption) (Route_GetLatestImageClient, error)
 	//update the device token
 	UpdateDeviceToken(ctx context.Context, in *DeviceVerify, opts ...grpc.CallOption) (*Empty, error)
+	//update the de1 id and username
+	SendDe1ID(ctx context.Context, in *BluetoothInfo, opts ...grpc.CallOption) (*Empty, error)
+	//get the de1 id and username
+	GetDe1ID(ctx context.Context, in *MainUser, opts ...grpc.CallOption) (*BluetoothInfo, error)
 }
 
 type routeClient struct {
@@ -296,6 +300,24 @@ func (c *routeClient) UpdateDeviceToken(ctx context.Context, in *DeviceVerify, o
 	return out, nil
 }
 
+func (c *routeClient) SendDe1ID(ctx context.Context, in *BluetoothInfo, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/route.Route/SendDe1ID", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *routeClient) GetDe1ID(ctx context.Context, in *MainUser, opts ...grpc.CallOption) (*BluetoothInfo, error) {
+	out := new(BluetoothInfo)
+	err := c.cc.Invoke(ctx, "/route.Route/GetDe1ID", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RouteServer is the server API for Route service.
 // All implementations must embed UnimplementedRouteServer
 // for forward compatibility
@@ -316,6 +338,10 @@ type RouteServer interface {
 	GetLatestImage(*Empty, Route_GetLatestImageServer) error
 	//update the device token
 	UpdateDeviceToken(context.Context, *DeviceVerify) (*Empty, error)
+	//update the de1 id and username
+	SendDe1ID(context.Context, *BluetoothInfo) (*Empty, error)
+	//get the de1 id and username
+	GetDe1ID(context.Context, *MainUser) (*BluetoothInfo, error)
 	mustEmbedUnimplementedRouteServer()
 }
 
@@ -358,6 +384,12 @@ func (UnimplementedRouteServer) GetLatestImage(*Empty, Route_GetLatestImageServe
 }
 func (UnimplementedRouteServer) UpdateDeviceToken(context.Context, *DeviceVerify) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateDeviceToken not implemented")
+}
+func (UnimplementedRouteServer) SendDe1ID(context.Context, *BluetoothInfo) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendDe1ID not implemented")
+}
+func (UnimplementedRouteServer) GetDe1ID(context.Context, *MainUser) (*BluetoothInfo, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetDe1ID not implemented")
 }
 func (UnimplementedRouteServer) mustEmbedUnimplementedRouteServer() {}
 
@@ -621,6 +653,42 @@ func _Route_UpdateDeviceToken_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Route_SendDe1ID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BluetoothInfo)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RouteServer).SendDe1ID(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/route.Route/SendDe1ID",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RouteServer).SendDe1ID(ctx, req.(*BluetoothInfo))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Route_GetDe1ID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MainUser)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RouteServer).GetDe1ID(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/route.Route/GetDe1ID",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RouteServer).GetDe1ID(ctx, req.(*MainUser))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Route_ServiceDesc is the grpc.ServiceDesc for Route service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -651,6 +719,14 @@ var Route_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateDeviceToken",
 			Handler:    _Route_UpdateDeviceToken_Handler,
+		},
+		{
+			MethodName: "SendDe1ID",
+			Handler:    _Route_SendDe1ID_Handler,
+		},
+		{
+			MethodName: "GetDe1ID",
+			Handler:    _Route_GetDe1ID_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
