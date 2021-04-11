@@ -112,7 +112,6 @@ service Route {
   rpc RequestToLock(stream LockConnection) returns (stream LockReq){}
 
 
-
   //update the de1 id and username
   rpc SendDe1ID(BluetoothInfo) returns (Empty){}
 
