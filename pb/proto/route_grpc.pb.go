@@ -34,7 +34,7 @@ type RouteClient interface {
 	GetLatestImage(ctx context.Context, in *Empty, opts ...grpc.CallOption) (Route_GetLatestImageClient, error)
 	//update the device token
 	UpdateDeviceToken(ctx context.Context, in *DeviceVerify, opts ...grpc.CallOption) (*Empty, error)
-	LockDoor(ctx context.Context, in *LockDoorReq, opts ...grpc.CallOption) (*Empty, error)
+	LockDoor(ctx context.Context, in *LockDoorReq, opts ...grpc.CallOption) (*LockResp, error)
 	RequestToLock(ctx context.Context, opts ...grpc.CallOption) (Route_RequestToLockClient, error)
 	//update the de1 id and username
 	SendDe1ID(ctx context.Context, in *BluetoothInfo, opts ...grpc.CallOption) (*Empty, error)
@@ -302,8 +302,8 @@ func (c *routeClient) UpdateDeviceToken(ctx context.Context, in *DeviceVerify, o
 	return out, nil
 }
 
-func (c *routeClient) LockDoor(ctx context.Context, in *LockDoorReq, opts ...grpc.CallOption) (*Empty, error) {
-	out := new(Empty)
+func (c *routeClient) LockDoor(ctx context.Context, in *LockDoorReq, opts ...grpc.CallOption) (*LockResp, error) {
+	out := new(LockResp)
 	err := c.cc.Invoke(ctx, "/route.Route/LockDoor", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -380,7 +380,7 @@ type RouteServer interface {
 	GetLatestImage(*Empty, Route_GetLatestImageServer) error
 	//update the device token
 	UpdateDeviceToken(context.Context, *DeviceVerify) (*Empty, error)
-	LockDoor(context.Context, *LockDoorReq) (*Empty, error)
+	LockDoor(context.Context, *LockDoorReq) (*LockResp, error)
 	RequestToLock(Route_RequestToLockServer) error
 	//update the de1 id and username
 	SendDe1ID(context.Context, *BluetoothInfo) (*Empty, error)
@@ -429,7 +429,7 @@ func (UnimplementedRouteServer) GetLatestImage(*Empty, Route_GetLatestImageServe
 func (UnimplementedRouteServer) UpdateDeviceToken(context.Context, *DeviceVerify) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateDeviceToken not implemented")
 }
-func (UnimplementedRouteServer) LockDoor(context.Context, *LockDoorReq) (*Empty, error) {
+func (UnimplementedRouteServer) LockDoor(context.Context, *LockDoorReq) (*LockResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method LockDoor not implemented")
 }
 func (UnimplementedRouteServer) RequestToLock(Route_RequestToLockServer) error {

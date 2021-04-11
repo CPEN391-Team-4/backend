@@ -78,6 +78,10 @@ func main() {
 			requested: make(chan bool, 1),
 			up:        make(chan bool, 1),
 		},
+		unlockDoorRequest: UnlockDoorRequest{
+			requested: make(chan bool, 1),
+			done:      make(chan bool, 1),
+		},
 	}
 	pb.RegisterRouteServer(grpcServer, &rs)
 	pb.RegisterVideoRouteServer(grpcServer, &rs)

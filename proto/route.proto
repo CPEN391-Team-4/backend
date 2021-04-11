@@ -107,7 +107,7 @@ service Route {
   //update the device token 
   rpc UpdateDeviceToken(DeviceVerify) returns (Empty){}
 
-  rpc LockDoor(LockDoorReq) returns (Empty){}
+  rpc LockDoor(LockDoorReq) returns (LockResp){}
 
   rpc RequestToLock(stream LockConnection) returns (stream LockReq){}
 
