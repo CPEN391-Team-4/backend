@@ -38,6 +38,7 @@ type routeServer struct {
 	firebaseKeyfile      string
 	waitingUser          chan int
 	videoStreamRequest   VideoStreamRequest
+	unlockDoorRequest    UnlockDoorRequest
 }
 
 func main() {

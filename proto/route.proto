@@ -59,6 +59,22 @@ message DeviceVerify{
   string token = 2;
 }
 
+message LockDoorReq {
+  bool locked = 1;
+}
+
+message LockReq {
+  bool request = 1;
+}
+message LockResp {
+  bool success = 1;
+}
+
+//a request from de1 to first time set up the connection with server
+message InitialConnection {
+  bool setup = 1;
+}
+
 service Route {
   rpc AddTrustedUser(stream User) returns (Empty) {}
   rpc UpdateTrustedUser(stream User) returns (Empty) {}
@@ -81,6 +97,9 @@ service Route {
   //update the device token 
   rpc UpdateDeviceToken(DeviceVerify) returns (Empty){}
 
+  rpc LockDoor(LockDoorReq) returns (Empty){}
+
+  rpc RequestToLock(stream InitialConnection) returns (stream LockReq){}
 }
 
 

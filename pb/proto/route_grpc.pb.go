@@ -34,6 +34,8 @@ type RouteClient interface {
 	GetLatestImage(ctx context.Context, in *Empty, opts ...grpc.CallOption) (Route_GetLatestImageClient, error)
 	//update the device token
 	UpdateDeviceToken(ctx context.Context, in *DeviceVerify, opts ...grpc.CallOption) (*Empty, error)
+	LockDoor(ctx context.Context, in *LockDoorReq, opts ...grpc.CallOption) (*Empty, error)
+	RequestToLock(ctx context.Context, opts ...grpc.CallOption) (Route_RequestToLockClient, error)
 }
 
 type routeClient struct {
@@ -296,6 +298,46 @@ func (c *routeClient) UpdateDeviceToken(ctx context.Context, in *DeviceVerify, o
 	return out, nil
 }
 
+func (c *routeClient) LockDoor(ctx context.Context, in *LockDoorReq, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/route.Route/LockDoor", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *routeClient) RequestToLock(ctx context.Context, opts ...grpc.CallOption) (Route_RequestToLockClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Route_ServiceDesc.Streams[6], "/route.Route/RequestToLock", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &routeRequestToLockClient{stream}
+	return x, nil
+}
+
+type Route_RequestToLockClient interface {
+	Send(*InitialConnection) error
+	Recv() (*LockReq, error)
+	grpc.ClientStream
+}
+
+type routeRequestToLockClient struct {
+	grpc.ClientStream
+}
+
+func (x *routeRequestToLockClient) Send(m *InitialConnection) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *routeRequestToLockClient) Recv() (*LockReq, error) {
+	m := new(LockReq)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // RouteServer is the server API for Route service.
 // All implementations must embed UnimplementedRouteServer
 // for forward compatibility
@@ -316,6 +358,8 @@ type RouteServer interface {
 	GetLatestImage(*Empty, Route_GetLatestImageServer) error
 	//update the device token
 	UpdateDeviceToken(context.Context, *DeviceVerify) (*Empty, error)
+	LockDoor(context.Context, *LockDoorReq) (*Empty, error)
+	RequestToLock(Route_RequestToLockServer) error
 	mustEmbedUnimplementedRouteServer()
 }
 
@@ -358,6 +402,12 @@ func (UnimplementedRouteServer) GetLatestImage(*Empty, Route_GetLatestImageServe
 }
 func (UnimplementedRouteServer) UpdateDeviceToken(context.Context, *DeviceVerify) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateDeviceToken not implemented")
+}
+func (UnimplementedRouteServer) LockDoor(context.Context, *LockDoorReq) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LockDoor not implemented")
+}
+func (UnimplementedRouteServer) RequestToLock(Route_RequestToLockServer) error {
+	return status.Errorf(codes.Unimplemented, "method RequestToLock not implemented")
 }
 func (UnimplementedRouteServer) mustEmbedUnimplementedRouteServer() {}
 
@@ -621,6 +671,50 @@ func _Route_UpdateDeviceToken_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Route_LockDoor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LockDoorReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RouteServer).LockDoor(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/route.Route/LockDoor",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RouteServer).LockDoor(ctx, req.(*LockDoorReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Route_RequestToLock_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(RouteServer).RequestToLock(&routeRequestToLockServer{stream})
+}
+
+type Route_RequestToLockServer interface {
+	Send(*LockReq) error
+	Recv() (*InitialConnection, error)
+	grpc.ServerStream
+}
+
+type routeRequestToLockServer struct {
+	grpc.ServerStream
+}
+
+func (x *routeRequestToLockServer) Send(m *LockReq) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *routeRequestToLockServer) Recv() (*InitialConnection, error) {
+	m := new(InitialConnection)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // Route_ServiceDesc is the grpc.ServiceDesc for Route service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -651,6 +745,10 @@ var Route_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateDeviceToken",
 			Handler:    _Route_UpdateDeviceToken_Handler,
+		},
+		{
+			MethodName: "LockDoor",
+			Handler:    _Route_LockDoor_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
@@ -683,6 +781,12 @@ var Route_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "GetLatestImage",
 			Handler:       _Route_GetLatestImage_Handler,
 			ServerStreams: true,
+		},
+		{
+			StreamName:    "RequestToLock",
+			Handler:       _Route_RequestToLock_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "proto/route.proto",
