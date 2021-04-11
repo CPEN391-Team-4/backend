@@ -71,7 +71,7 @@ message LockResp {
 }
 
 //a request from de1 to first time set up the connection with server
-message InitialConnection {
+message LockConnection {
   bool setup = 1;
 }
 
@@ -99,7 +99,7 @@ service Route {
 
   rpc LockDoor(LockDoorReq) returns (Empty){}
 
-  rpc RequestToLock(stream InitialConnection) returns (stream LockReq){}
+  rpc RequestToLock(stream LockConnection) returns (stream LockReq){}
 }
 
 

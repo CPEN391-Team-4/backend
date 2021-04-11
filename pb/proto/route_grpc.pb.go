@@ -317,7 +317,7 @@ func (c *routeClient) RequestToLock(ctx context.Context, opts ...grpc.CallOption
 }
 
 type Route_RequestToLockClient interface {
-	Send(*InitialConnection) error
+	Send(*LockConnection) error
 	Recv() (*LockReq, error)
 	grpc.ClientStream
 }
@@ -326,7 +326,7 @@ type routeRequestToLockClient struct {
 	grpc.ClientStream
 }
 
-func (x *routeRequestToLockClient) Send(m *InitialConnection) error {
+func (x *routeRequestToLockClient) Send(m *LockConnection) error {
 	return x.ClientStream.SendMsg(m)
 }
 
@@ -695,7 +695,7 @@ func _Route_RequestToLock_Handler(srv interface{}, stream grpc.ServerStream) err
 
 type Route_RequestToLockServer interface {
 	Send(*LockReq) error
-	Recv() (*InitialConnection, error)
+	Recv() (*LockConnection, error)
 	grpc.ServerStream
 }
 
@@ -707,8 +707,8 @@ func (x *routeRequestToLockServer) Send(m *LockReq) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *routeRequestToLockServer) Recv() (*InitialConnection, error) {
-	m := new(InitialConnection)
+func (x *routeRequestToLockServer) Recv() (*LockConnection, error) {
+	m := new(LockConnection)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
