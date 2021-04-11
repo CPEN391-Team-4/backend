@@ -29,16 +29,16 @@ const (
 type routeServer struct {
 	pb.UnimplementedRouteServer
 	pb.UnimplementedVideoRouteServer
-	conn                 *sql.DB
-	db                   string
-	imagestore           string
-	videostore           string
-	faceClient           *face.Client
-	streams              VideoStreams
-	firebaseKeyfile      string
-	waitingUser          chan int
-	videoStreamRequest   VideoStreamRequest
-	unlockDoorRequest    UnlockDoorRequest
+	conn               *sql.DB
+	db                 string
+	imagestore         string
+	videostore         string
+	faceClient         *face.Client
+	streams            VideoStreams
+	firebaseKeyfile    string
+	waitingUser        chan int
+	videoStreamRequest VideoStreamRequest
+	unlockDoorRequest  UnlockDoorRequest
 }
 
 func main() {
@@ -66,17 +66,17 @@ func main() {
 	faceClient.Authorizer = autorest.NewCognitiveServicesAuthorizer(environ.FaceSubscriptionKey)
 
 	rs := routeServer{
-		conn:                 db,
-		db:                   environ.Db,
-		imagestore:           environ.Imagestore,
-		videostore:           environ.Videostore,
-		firebaseKeyfile:      environ.FirebaseKeyfile,
-		faceClient:           &faceClient,
-		streams:              VideoStreams{stream: make(map[string]chan Frame)},
-		waitingUser:          make(chan int, 1),
-		videoStreamRequest:   VideoStreamRequest{
+		conn:            db,
+		db:              environ.Db,
+		imagestore:      environ.Imagestore,
+		videostore:      environ.Videostore,
+		firebaseKeyfile: environ.FirebaseKeyfile,
+		faceClient:      &faceClient,
+		streams:         VideoStreams{stream: make(map[string]chan Frame)},
+		waitingUser:     make(chan int, 1),
+		videoStreamRequest: VideoStreamRequest{
 			requested: make(chan bool, 1),
-			up: make(chan bool, 1),
+			up:        make(chan bool, 1),
 		},
 	}
 	pb.RegisterRouteServer(grpcServer, &rs)
