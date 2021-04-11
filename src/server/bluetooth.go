@@ -51,7 +51,8 @@ func (rs *routeServer) addBlueinfoTODB(username string, de1id string) error {
 }
 
 func (rs *routeServer) getDe1IDFromDB(username string) (string, error) {
-	sql_q := "SELECT token FROM " + BlueToothTable + "where username = " + username
+	sql_q := "SELECT de1id FROM " + BlueToothTable + " where username = " + "'" + username + "'"
+	fmt.Println(sql_q)
 	res, err := rs.conn.Query(sql_q)
 
 	if err != nil {
