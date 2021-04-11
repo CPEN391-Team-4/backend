@@ -185,9 +185,7 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 		}
 		if *res.result.IsIdentical {
 			fmt.Println("IsIdentical user=", user.name)
-			if highestConf == nil {
-				highestConf = res.result
-			} else if *highestConf.Confidence > *res.result.Confidence {
+			if highestConf == nil || *highestConf.Confidence > *res.result.Confidence {
 				highestConf = res.result
 				dbuser = user.name
 				resp.User = user.name
