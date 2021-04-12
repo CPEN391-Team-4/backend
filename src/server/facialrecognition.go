@@ -195,32 +195,34 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 
 	fmt.Println("Finishing verify face.")
 
-	recordID, err := rs.AddRecordToDB(dbuser, imgId)
-	if err != nil {
-		return logging.LogError(status.Errorf(codes.Internal, "cannot add record to db: %v", err))
-	}
-
-	tokens, err := rs.GetAllTokens()
-	if err != nil {
-		return logging.LogError(status.Errorf(codes.Internal, "cannot get tokens: %v", err))
-	}
-	for _, t := range tokens {
-		_, err = notification.Send(t, "Detected human motion", fmt.Sprintf("user=%s", resp.User), rs.firebaseKeyfile)
+	if resp.User != "" {
+		recordID, err := rs.AddRecordToDB(dbuser, imgId)
 		if err != nil {
-			_ = logging.LogError(status.Errorf(codes.Internal, "cannot send notification: %v", err))
+			return logging.LogError(status.Errorf(codes.Internal, "cannot add record to db: %v", err))
 		}
-	}
 
-	resp.Accept = resp.User != ""
-	var status string
-	if resp.Accept {
-		status = "Allowed"
-	} else {
-		status = "Denied"
-	}
-	err = rs.UpdateRecordStatusToDB(recordID, status)
-	if err != nil {
-		return err
+		tokens, err := rs.GetAllTokens()
+		if err != nil {
+			return logging.LogError(status.Errorf(codes.Internal, "cannot get tokens: %v", err))
+		}
+		for _, t := range tokens {
+			_, err = notification.Send(t, "Detected human motion", fmt.Sprintf("user=%s", resp.User), rs.firebaseKeyfile)
+			if err != nil {
+				_ = logging.LogError(status.Errorf(codes.Internal, "cannot send notification: %v", err))
+			}
+		}
+
+		resp.Accept = resp.User != ""
+		var status string
+		if resp.Accept {
+			status = "Allowed"
+		} else {
+			status = "Denied"
+		}
+		err = rs.UpdateRecordStatusToDB(recordID, status)
+		if err != nil {
+			return err
+		}
 	}
 
 	return stream.SendAndClose(&resp)

@@ -138,7 +138,7 @@ func (rs *routeServer) AddTrustedUser(stream pb.Route_AddTrustedUserServer) erro
 				return logging.LogError(status.Errorf(codes.Unknown, "User must be set on first request"))
 			}
 			user = req
-			log.Print("received a user", user)
+			log.Print("received a user: ", user.Name)
 		}
 
 		photo := req.GetPhoto()
@@ -195,7 +195,7 @@ func (rs *routeServer) UpdateTrustedUser(stream pb.Route_UpdateTrustedUserServer
 				return logging.LogError(status.Errorf(codes.Unknown, "User must be set on first request"))
 			}
 			user = req
-			log.Print("received a user", user)
+			log.Print("received a user: ", user.Name)
 		}
 
 		photo := req.GetPhoto()
