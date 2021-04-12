@@ -14,7 +14,6 @@ import (
 	"sync"
 )
 
-const DEFAULT_ID = "default"
 const VIDEOSTREAM_SIZE = 16
 const TIME_INTERVAL = 5
 
@@ -36,13 +35,20 @@ func (rs *routeServer) StreamVideo(stream pb.VideoRoute_StreamVideoServer) error
 	startFrame := true
 	var dirId string
 
+	req, err := stream.Recv()
+	if err != nil {
+		return logging.LogError(status.Errorf(codes.Unknown, "cannot receive initial data: %v", err))
+	}
+
+	did := req.DeviceId
+
 	rs.streams.Lock()
-	if val, ok := rs.streams.stream[DEFAULT_ID]; !ok || rs.streams.stream[DEFAULT_ID] == nil {
+	if val, ok := rs.streams.stream[did]; !ok || rs.streams.stream[did] == nil {
 		if val != nil {
 			rs.streams.Unlock()
-			return status.Errorf(codes.Unknown, "Stream id=%s is already live", DEFAULT_ID)
+			return status.Errorf(codes.Unknown, "Stream id=%s is already live", did)
 		}
-		rs.streams.stream[DEFAULT_ID] = make(chan Frame, VIDEOSTREAM_SIZE)
+		rs.streams.stream[did] = make(chan Frame, VIDEOSTREAM_SIZE)
 	}
 	rs.streams.Unlock()
 
@@ -85,7 +91,7 @@ func (rs *routeServer) StreamVideo(stream pb.VideoRoute_StreamVideoServer) error
 				continue
 			}
 
-			log.Printf("Videostream channel size=%v", len(rs.streams.stream[DEFAULT_ID]))
+			log.Printf("Videostream channel size=%v", len(rs.streams.stream[did]))
 			_, err = fw.Save(dirId, int(frameNumber), imgBytes)
 			if err != nil {
 				return logging.LogError(status.Errorf(codes.Internal, "cannot write chunk data: %v", err))
@@ -93,10 +99,10 @@ func (rs *routeServer) StreamVideo(stream pb.VideoRoute_StreamVideoServer) error
 
 			// Remove oldest frame
 			rs.streams.Lock()
-			if len(rs.streams.stream[DEFAULT_ID]) >= VIDEOSTREAM_SIZE {
-				<-rs.streams.stream[DEFAULT_ID]
+			if len(rs.streams.stream[did]) >= VIDEOSTREAM_SIZE {
+				<-rs.streams.stream[did]
 			}
-			rs.streams.stream[DEFAULT_ID] <- Frame{
+			rs.streams.stream[did] <- Frame{
 				number:    int(frameNumber),
 				data:      imgBytes.Bytes(),
 				lastChunk: lastChunk,
@@ -108,7 +114,7 @@ func (rs *routeServer) StreamVideo(stream pb.VideoRoute_StreamVideoServer) error
 		}
 	}
 	rs.streams.Lock()
-	rs.streams.stream[DEFAULT_ID] = nil
+	rs.streams.stream[did] = nil
 	rs.streams.Unlock()
 
 	return stream.SendAndClose(&pb.EmptyVideoResponse{})
@@ -121,21 +127,26 @@ func (rs *routeServer) PullVideoStream(req *pb.PullVideoStreamReq, stream pb.Vid
 	// Wait for 'up'
 	<-rs.videoStreamRequest.up
 
+	did, err := rs.getDe1IDFromDB(req.MainUser)
+	if err != nil {
+		return err
+	}
+
 	rs.streams.Lock()
-	val, ok := rs.streams.stream[DEFAULT_ID]
+	val, ok := rs.streams.stream[did]
 	if !ok {
 		rs.streams.Unlock()
-		return status.Errorf(codes.Unknown, "Stream id=%s doesn't exist", DEFAULT_ID)
+		return status.Errorf(codes.Unknown, "Stream id=%s doesn't exist", did)
 	}
 	if val == nil {
 		rs.streams.Unlock()
-		return status.Errorf(codes.Unknown, "Stream id=%s is not live", DEFAULT_ID)
+		return status.Errorf(codes.Unknown, "Stream id=%s is not live", did)
 	}
 	rs.streams.Unlock()
 	for {
 		rs.streams.Lock()
 
-		val, ok := rs.streams.stream[DEFAULT_ID]
+		val, ok := rs.streams.stream[did]
 		if !ok || val == nil {
 			err := stream.Send(&pb.PullVideoStreamResp{
 				Closed: true,
@@ -143,11 +154,11 @@ func (rs *routeServer) PullVideoStream(req *pb.PullVideoStreamReq, stream pb.Vid
 			rs.streams.Unlock()
 			return err
 		}
-		if len(rs.streams.stream[DEFAULT_ID]) == 0 {
+		if len(rs.streams.stream[did]) == 0 {
 			rs.streams.Unlock()
 			continue
 		}
-		f := <-rs.streams.stream[DEFAULT_ID]
+		f := <-rs.streams.stream[did]
 		err := stream.Send(&pb.PullVideoStreamResp{
 			Video: &pb.Video{
 				Frame: &pb.Frame{

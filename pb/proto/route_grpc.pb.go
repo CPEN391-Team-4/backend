@@ -28,8 +28,6 @@ type RouteClient interface {
 	GetHistoryRecorded(ctx context.Context, in *Timestamp, opts ...grpc.CallOption) (*HistoryRecords, error)
 	GetHistoryImage(ctx context.Context, in *ImageLocation, opts ...grpc.CallOption) (Route_GetHistoryImageClient, error)
 	DeleteRecords(ctx context.Context, in *ImageLocation, opts ...grpc.CallOption) (*Empty, error)
-	//send permission
-	GivePermission(ctx context.Context, in *Permission, opts ...grpc.CallOption) (*Empty, error)
 	//get the latest image when app gets the notification
 	GetLatestImage(ctx context.Context, in *Empty, opts ...grpc.CallOption) (Route_GetLatestImageClient, error)
 	//update the device token
@@ -252,15 +250,6 @@ func (c *routeClient) DeleteRecords(ctx context.Context, in *ImageLocation, opts
 	return out, nil
 }
 
-func (c *routeClient) GivePermission(ctx context.Context, in *Permission, opts ...grpc.CallOption) (*Empty, error) {
-	out := new(Empty)
-	err := c.cc.Invoke(ctx, "/route.Route/GivePermission", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *routeClient) GetLatestImage(ctx context.Context, in *Empty, opts ...grpc.CallOption) (Route_GetLatestImageClient, error) {
 	stream, err := c.cc.NewStream(ctx, &Route_ServiceDesc.Streams[5], "/route.Route/GetLatestImage", opts...)
 	if err != nil {
@@ -374,8 +363,6 @@ type RouteServer interface {
 	GetHistoryRecorded(context.Context, *Timestamp) (*HistoryRecords, error)
 	GetHistoryImage(*ImageLocation, Route_GetHistoryImageServer) error
 	DeleteRecords(context.Context, *ImageLocation) (*Empty, error)
-	//send permission
-	GivePermission(context.Context, *Permission) (*Empty, error)
 	//get the latest image when app gets the notification
 	GetLatestImage(*Empty, Route_GetLatestImageServer) error
 	//update the device token
@@ -419,9 +406,6 @@ func (UnimplementedRouteServer) GetHistoryImage(*ImageLocation, Route_GetHistory
 }
 func (UnimplementedRouteServer) DeleteRecords(context.Context, *ImageLocation) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteRecords not implemented")
-}
-func (UnimplementedRouteServer) GivePermission(context.Context, *Permission) (*Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GivePermission not implemented")
 }
 func (UnimplementedRouteServer) GetLatestImage(*Empty, Route_GetLatestImageServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetLatestImage not implemented")
@@ -646,24 +630,6 @@ func _Route_DeleteRecords_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Route_GivePermission_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Permission)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RouteServer).GivePermission(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/route.Route/GivePermission",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RouteServer).GivePermission(ctx, req.(*Permission))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _Route_GetLatestImage_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(Empty)
 	if err := stream.RecvMsg(m); err != nil {
@@ -805,10 +771,6 @@ var Route_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteRecords",
 			Handler:    _Route_DeleteRecords_Handler,
-		},
-		{
-			MethodName: "GivePermission",
-			Handler:    _Route_GivePermission_Handler,
 		},
 		{
 			MethodName: "UpdateDeviceToken",

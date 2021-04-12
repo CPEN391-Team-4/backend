@@ -8,6 +8,7 @@ message User {
   string name = 1;
   bool restricted = 2;
   Photo Photo = 3;
+  string mainUser = 4;
 }
 message Photo {
   bytes image = 1;
@@ -19,6 +20,7 @@ message UserNames{
 message Empty {}
 message FaceVerificationReq {
   Photo Photo = 1;
+  string mainUser = 2;
 }
 message FaceVerificationResp {
   string user = 1;
@@ -39,6 +41,7 @@ message HistoryRecords{
 
 message ImageLocation{
   string address = 1;
+  string mainUser = 2;
 }
 
 
@@ -46,25 +49,30 @@ message ImageLocation{
 message Timestamp{
   string starttime = 1;
   string endtime = 2;
+  string mainUser = 3;
 }
 
 message Permission{
   string usernames = 1;  //could be none, if the user is not a truested user
   int64 userid = 2;     // used to update the recorded table status
   bool permit = 3;     //  if agree to access set to 1, rejected set to 0
+  string mainUser = 4;
 }
 
 message DeviceVerify{
   string deviceid = 1;
   string token = 2;
+  string mainUser = 3;
 }
 
 message LockDoorReq {
   bool locked = 1;
+  string mainUser = 2;
 }
 
 message LockReq {
   bool request = 1;
+  string mainUser = 2;
 }
 message LockResp {
   bool success = 1;
@@ -73,16 +81,19 @@ message LockResp {
 //a request from de1 to first time set up the connection with server
 message LockConnection {
   bool setup = 1;
+  string mainUser = 2;
 }
 
 
 message BluetoothInfo{
   string de1ID = 1;
   string username = 2;
+  string mainUser = 3;
 }
 
 message MainUser{
   string username = 1;
+  string mainUser = 2;
 }
 
 service Route {

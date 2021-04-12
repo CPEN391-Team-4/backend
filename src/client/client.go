@@ -123,6 +123,41 @@ func getAllUserNames(c pb.RouteClient, ctx context.Context) error {
 	return nil
 }
 
+func reqToLock(c pb.RouteClient, ctx context.Context) error {
+	stream, err := c.RequestToLock(ctx)
+	if err != nil {
+		return err
+	}
+
+	for {
+		req, err := stream.Recv()
+		log.Printf("req=%v", req)
+		if err != nil {
+			return err
+		}
+		stream.Send(&pb.LockConnection{Setup: true})
+	}
+
+	return nil
+}
+func reqToStream(c pb.VideoRouteClient, ctx context.Context) error {
+	stream, err := c.RequestToStream(ctx)
+	if err != nil {
+		return err
+	}
+
+	for {
+		req, err := stream.Recv()
+		log.Printf("req=%v", req)
+		if err != nil {
+			return err
+		}
+		stream.Send(&pb.InitialConnection{Setup: true})
+	}
+
+	return nil
+}
+
 func addUser(client pb.RouteClient, ctx context.Context, file string, name string, restricted bool) error {
 	f, err := os.Open(file)
 	if err != nil {
@@ -254,6 +289,31 @@ func sendPullVideo(client pb.VideoRouteClient, ctx context.Context) error {
 
 	return nil
 }
+func pullVideo(client pb.VideoRouteClient, ctx context.Context) error {
+	pullStream, err := client.PullVideoStream(ctx, &pb.PullVideoStreamReq{Id: "default"})
+	if err != nil {
+		log.Fatalf("%v.PullVideoStream(_) = _, %v", client, err)
+	}
+
+	for {
+
+		reply, err := pullStream.Recv()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			log.Fatalf("%v.Recv() = %v", pullStream, err)
+		}
+		log.Printf("Recieved %v", reply)
+		if reply.Closed {
+			log.Printf("Stream closed")
+			break
+		}
+	}
+	err = pullStream.CloseSend()
+
+	return err
+}
 
 
 func requestToStream(client pb.VideoRouteClient, ctx context.Context, file string) error {
@@ -283,9 +343,8 @@ func requestToStream(client pb.VideoRouteClient, ctx context.Context, file strin
 	go func() {
 		for {
 			reply, err := reqStream.Recv()
-			if reply.Request {
-				up <- true
-			}
+
+			up <- reply.Request
 
 			<- streaming
 			err = reqStream.Send(&pb.InitialConnection{Setup: true})
@@ -397,9 +456,18 @@ func main() {
 			os.Exit(1)
 		}
 		err = requestToStream(svc, ctx, requestStreamVideoCmd.Args()[0])
+	case "reqtostream":
+		fmt.Println("subcommand 'reqtostream'")
+		err = reqToStream(svc, ctx)
+	case "sendpullvideo":
+		fmt.Println("subcommand 'sendpullvideo'")
+		err = sendPullVideo(svc, ctx)
 	case "pullvideo":
 		fmt.Println("subcommand 'pullvideo'")
-		err = sendPullVideo(svc, ctx)
+		err = pullVideo(svc, ctx)
+	case "reqtolock":
+		fmt.Println("subcommand 'reqtolock'")
+		err = reqToLock(c, ctx)
 	default:
 		fmt.Println("expected subcommand")
 		os.Exit(1)

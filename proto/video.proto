@@ -9,6 +9,7 @@ message Video {
   string name = 1;
   string encoding = 2;
   Frame frame = 3;
+  string deviceId = 4;
 }
 message Frame {
   int32 number = 1;
@@ -19,6 +20,7 @@ message Frame {
 message EmptyVideoResponse {}
 message PullVideoStreamReq {
   string id = 1;
+  string mainUser = 2;
 }
 
 message PullVideoStreamResp {
@@ -28,6 +30,7 @@ message PullVideoStreamResp {
 
 message EndPullVideoStreamReq{
   string id = 1;
+  string mainUser = 2;
 }
 
 //a stream request to notify when the de1 need to start sending frames
