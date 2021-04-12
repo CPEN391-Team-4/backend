@@ -223,8 +223,7 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 		if err != nil {
 			return err
 		}
-	}
-    else {
+	} else {
 		tokens, err := rs.GetAllTokens()
 		if err != nil {
 			return logging.LogError(status.Errorf(codes.Internal, "cannot get tokens: %v", err))
