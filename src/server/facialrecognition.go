@@ -230,7 +230,7 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 			return logging.LogError(status.Errorf(codes.Internal, "cannot get tokens: %v", err))
 		}
 		for _, t := range tokens {
-			_, err = notification.Send(t, "Detected and let in a trusted person.", resp.User, rs.firebaseKeyfile)
+			_, err = notification.Send(t, "Someone who is not a trusted user is at the door", "", rs.firebaseKeyfile)
 			if err != nil {
 				_ = logging.LogError(status.Errorf(codes.Internal, "cannot send notification: %v", err))
 			}
