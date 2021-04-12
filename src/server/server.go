@@ -36,7 +36,6 @@ type routeServer struct {
 	faceClient         *face.Client
 	streams            VideoStreams
 	firebaseKeyfile    string
-	waitingUser        chan int
 	videoStreamRequest VideoStreamRequest
 	unlockDoorRequest  UnlockDoorRequest
 }
@@ -73,7 +72,6 @@ func main() {
 		firebaseKeyfile: environ.FirebaseKeyfile,
 		faceClient:      &faceClient,
 		streams:         VideoStreams{stream: make(map[string]chan Frame)},
-		waitingUser:     make(chan int, 1),
 		videoStreamRequest: VideoStreamRequest{
 			requested: make(chan bool, 1),
 			up:        make(chan bool, 1),

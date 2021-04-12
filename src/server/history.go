@@ -102,26 +102,6 @@ func (rs *routeServer) DeleteRecords(ctx context.Context, imageid *pb.ImageLocat
 	return &pb.Empty{}, err
 }
 
-func (rs *routeServer) GivePermission(ctx context.Context, permission *pb.Permission) (*pb.Empty, error) {
-
-	var err error
-	// if permission.Usernames != WaitedGuest {
-	// 	return &pb.Empty{}, status.Errorf(codes.NotFound, "Permission Guest Name did not match!")
-	// }
-
-	//set the getPermission map with id , value according to the permission
-
-	//update the permission status in the database
-	fmt.Println("enter give permission")
-	if permission.Permit {
-		rs.waitingUser <- permAllow
-	} else {
-		rs.waitingUser <- permDeny
-	}
-
-	return &pb.Empty{}, err
-}
-
 func (rs *routeServer) GetLatestImage(_ *pb.Empty, stream pb.Route_GetLatestImageServer) error {
 	var err error
 	imageid, err := rs.GetLatestRecordImageID()

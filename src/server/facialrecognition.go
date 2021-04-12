@@ -8,13 +8,12 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"time"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/latest/cognitiveservices/face"
 	pb "github.com/CPEN391-Team-4/backend/pb/proto"
+	"github.com/CPEN391-Team-4/backend/src/imagestore"
 	"github.com/CPEN391-Team-4/backend/src/logging"
 	"github.com/CPEN391-Team-4/backend/src/notification"
-	"github.com/CPEN391-Team-4/backend/src/imagestore"
 	"github.com/gofrs/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -214,23 +213,16 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 		}
 	}
 
-	// Wait for response
-	select {
-	case res := <-rs.waitingUser:
-		fmt.Println("Success:", res)
-		err := rs.UpdateRecordStatusToDB(recordID, "Agree")
-		if err != nil {
-			return err
-		}
-		resp.Accept = res == permAllow
-	case <-time.After(userTimeout * time.Second):
-		log.Println("timeout waiting on notification response")
-		err := rs.UpdateRecordStatusToDB(recordID, "Deny")
-		if err != nil {
-			return err
-		}
-		resp.User = ""
-		resp.Accept = false
+	resp.Accept = resp.User != ""
+	var status string
+	if resp.Accept {
+		status = "Allowed"
+	} else {
+		status = "Denied"
+	}
+	err = rs.UpdateRecordStatusToDB(recordID, status)
+	if err != nil {
+		return err
 	}
 
 	return stream.SendAndClose(&resp)

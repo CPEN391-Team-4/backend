@@ -98,8 +98,6 @@ service Route {
   rpc  GetHistoryRecorded(Timestamp) returns (HistoryRecords){}
   rpc  GetHistoryImage(ImageLocation) returns (stream Photo){}
   rpc  DeleteRecords(ImageLocation) returns (Empty){}
-  //send permission
-  rpc  GivePermission(Permission) returns (Empty){}
   
   //get the latest image when app gets the notification 
   rpc GetLatestImage(Empty) returns (stream Photo){}
