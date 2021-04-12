@@ -109,7 +109,6 @@ func (rs *routeServer) verifyFaceAsync(user User, faceBuffer *bytes.Buffer) <-ch
 
 func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) error {
 	imgBytes := bytes.Buffer{}
-	var fvReq *pb.FaceVerificationReq
 	imageSize := 0
 	for chunkNum := 0; ; chunkNum++ {
 
@@ -126,8 +125,7 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 			if req == nil {
 				return logging.LogError(status.Errorf(codes.Unknown, "User must be set on first request"))
 			}
-			fvReq = req
-			log.Print("received a request", fvReq)
+			log.Print("received a request")
 		}
 
 		photo := req.GetPhoto()

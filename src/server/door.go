@@ -9,7 +9,7 @@ import (
 
 type UnlockDoorRequest struct {
 	requested chan bool
-	done chan bool
+	done      chan bool
 }
 
 func (rs *routeServer) LockDoor(ctx context.Context, req *pb.LockDoorReq) (*pb.LockResp, error) {
@@ -17,7 +17,7 @@ func (rs *routeServer) LockDoor(ctx context.Context, req *pb.LockDoorReq) (*pb.L
 	rs.unlockDoorRequest.requested <- req.Locked
 	log.Printf("Lock request fin: %v", req)
 	log.Printf("LockDoor: len(rs.unlockDoorRequest.requested)=%v", len(rs.unlockDoorRequest.requested))
-	return &pb.LockResp{Success: <- rs.unlockDoorRequest.done}, nil
+	return &pb.LockResp{Success: <-rs.unlockDoorRequest.done}, nil
 }
 
 //keep sending the video_stream_request state to de1
@@ -26,7 +26,14 @@ func (rs *routeServer) RequestToLock(stream pb.Route_RequestToLockServer) error 
 		log.Printf("RequestToLock")
 		log.Printf("ReqToLock: len(rs.unlockDoorRequest.requested)=%v", len(rs.unlockDoorRequest.requested))
 
-		req := <- rs.unlockDoorRequest.requested
+		var req bool
+		select {
+		case <-stream.Context().Done():
+			log.Println("done RequestToLock")
+			return nil
+		case req = <-rs.unlockDoorRequest.requested:
+			break
+		}
 		log.Printf("ReqToLock: len(rs.unlockDoorRequest.requested)=%v", len(rs.unlockDoorRequest.requested))
 		log.Printf("req=%v", req)
 		err := stream.Send(&pb.LockReq{Request: req})

@@ -188,7 +188,14 @@ func (rs *routeServer) EndPullVideoStream(ctx context.Context, request *pb.EndPu
 //keep sending the video_stream_request state to de1
 func (rs *routeServer) RequestToStream(stream pb.VideoRoute_RequestToStreamServer) error {
 	for {
-		req := <-rs.videoStreamRequest.requested
+		var req bool
+		select {
+		case <-stream.Context().Done():
+			log.Println("done RequestToStream")
+			return nil
+		case req = <-rs.videoStreamRequest.requested:
+			break
+		}
 		err := stream.Send(&pb.Streamrequest{Request: req})
 		if err != nil {
 			return err
