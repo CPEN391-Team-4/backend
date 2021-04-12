@@ -214,18 +214,16 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 			}
 		}
 
-		resp.Accept = resp.User != ""
-		var uStatus string
-		if resp.Accept {
-			uStatus = "Allowed"
-		} else {
-			uStatus = "Denied"
-		}
-		err = rs.UpdateRecordStatusToDB(recordID, uStatus)
+		err = rs.UpdateRecordStatusToDB(recordID, "Allowed")
 		if err != nil {
 			return err
 		}
 	} else if foundFace {
+		recordID, err := rs.AddRecordToDB("Stranger", imgId)
+		if err != nil {
+			return logging.LogError(status.Errorf(codes.Internal, "cannot add record to db: %v", err))
+		}
+
 		tokens, err := rs.GetAllTokens()
 		if err != nil {
 			return logging.LogError(status.Errorf(codes.Internal, "cannot get tokens: %v", err))
@@ -235,6 +233,10 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 			if err != nil {
 				_ = logging.LogError(status.Errorf(codes.Internal, "cannot send notification: %v", err))
 			}
+		}
+		err = rs.UpdateRecordStatusToDB(recordID, "Denied")
+		if err != nil {
+			return err
 		}
 	}
 
