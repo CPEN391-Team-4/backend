@@ -1,6 +1,0 @@
-export FACE_ENDPOINT="" 
-export FACE_SUBSCRIPTION_KEY="" 
-export SERVER_ADDRESS=":9000" 
-export DB="cpen391_backend" 
-export IMAGESTORE="/home/aniket/imagestore"
-export DB_URI="aniket:password@/cpen391_backend"
