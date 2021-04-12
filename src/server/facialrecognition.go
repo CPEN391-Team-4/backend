@@ -169,6 +169,7 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 	}
 
 	dbuser := "Stranger"
+	foundFace := false
 
 	var highestConf *face.VerifyResult = nil
 
@@ -180,6 +181,7 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 		if res.result == nil {
 			continue
 		}
+		foundFace = true
 		if *res.result.IsIdentical {
 			fmt.Println("IsIdentical user=", user.name)
 			if highestConf == nil || *highestConf.Confidence > *res.result.Confidence {
@@ -213,17 +215,17 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 		}
 
 		resp.Accept = resp.User != ""
-		var status string
+		var uStatus string
 		if resp.Accept {
-			status = "Allowed"
+			uStatus = "Allowed"
 		} else {
-			status = "Denied"
+			uStatus = "Denied"
 		}
-		err = rs.UpdateRecordStatusToDB(recordID, status)
+		err = rs.UpdateRecordStatusToDB(recordID, uStatus)
 		if err != nil {
 			return err
 		}
-	} else {
+	} else if foundFace {
 		tokens, err := rs.GetAllTokens()
 		if err != nil {
 			return logging.LogError(status.Errorf(codes.Internal, "cannot get tokens: %v", err))
