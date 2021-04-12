@@ -184,7 +184,7 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 		foundFace = true
 		if *res.result.IsIdentical {
 			fmt.Println("IsIdentical user=", user.name)
-			if highestConf == nil || *highestConf.Confidence > *res.result.Confidence {
+			if highestConf == nil || *highestConf.Confidence <= *res.result.Confidence {
 				highestConf = res.result
 				dbuser = user.name
 				resp.User = user.name
@@ -236,7 +236,7 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 				_ = logging.LogError(status.Errorf(codes.Internal, "cannot send notification: %v", err))
 			}
 		}
-    }
+	}
 
 	return stream.SendAndClose(&resp)
 }
