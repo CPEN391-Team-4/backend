@@ -24,7 +24,7 @@ type VideoStreams struct {
 }
 type VideoStreamRequest struct {
 	requested chan bool
-	up chan bool
+	up        chan bool
 }
 
 func (rs *routeServer) StreamVideo(stream pb.VideoRoute_StreamVideoServer) error {
@@ -119,7 +119,7 @@ func (rs *routeServer) PullVideoStream(req *pb.PullVideoStreamReq, stream pb.Vid
 	rs.videoStreamRequest.requested <- true
 
 	// Wait for 'up'
-	<- rs.videoStreamRequest.up
+	<-rs.videoStreamRequest.up
 
 	rs.streams.Lock()
 	val, ok := rs.streams.stream[DEFAULT_ID]
@@ -177,19 +177,23 @@ func (rs *routeServer) EndPullVideoStream(ctx context.Context, request *pb.EndPu
 //keep sending the video_stream_request state to de1
 func (rs *routeServer) RequestToStream(stream pb.VideoRoute_RequestToStreamServer) error {
 	for {
-		req := <- rs.videoStreamRequest.requested
+		req := <-rs.videoStreamRequest.requested
 		err := stream.Send(&pb.Streamrequest{Request: req})
 		if err != nil {
 			return err
 		}
-		in, err := stream.Recv()
-		if err != nil {
-			return err
+
+		if req {
+			in, err := stream.Recv()
+			log.Println("receive up from backend")
+			if err != nil {
+				return err
+			}
+			if err == io.EOF {
+				return nil
+			}
+			rs.videoStreamRequest.up <- in.Setup
 		}
-		if err == io.EOF {
-			return nil
-		}
-		rs.videoStreamRequest.up <- in.Setup
 	}
 
 	return nil
