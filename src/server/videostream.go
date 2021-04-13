@@ -14,18 +14,24 @@ import (
 	"sync"
 )
 
+// Number of VideoStreams Frame channels kept
 const VIDEOSTREAM_SIZE = 16
-const TIME_INTERVAL = 5
 
+// Map of device ids to associated streams
 type VideoStreams struct {
 	sync.Mutex
 	stream map[string]chan Frame
 }
+
+// Flags for stream initiation
 type VideoStreamRequest struct {
 	requested chan bool
 	up        chan bool
 }
 
+// StreamVideo receives a stream of Video's which each contain Frames
+// Frame chunks are joined to form full frames which get both written to disk and added
+// to live stream channels.
 func (rs *routeServer) StreamVideo(stream pb.VideoRoute_StreamVideoServer) error {
 
 	imgBytes := bytes.Buffer{}
@@ -120,6 +126,8 @@ func (rs *routeServer) StreamVideo(stream pb.VideoRoute_StreamVideoServer) error
 	return stream.SendAndClose(&pb.EmptyVideoResponse{})
 }
 
+// PullVideoStream Initiates a 'pull' stream accessing video stored in the rs.streams.stream[id]
+// for a specific device.
 func (rs *routeServer) PullVideoStream(req *pb.PullVideoStreamReq, stream pb.VideoRoute_PullVideoStreamServer) error {
 	fmt.Println("Start live stream request received.")
 	rs.videoStreamRequest.requested <- true
@@ -178,14 +186,14 @@ func (rs *routeServer) PullVideoStream(req *pb.PullVideoStreamReq, stream pb.Vid
 	return nil
 }
 
-// receive call from app to end the stream
+// EndPullVideoStream receives calls from the client to end a stream
 func (rs *routeServer) EndPullVideoStream(ctx context.Context, request *pb.EndPullVideoStreamReq) (*pb.EmptyVideoResponse, error) {
 	fmt.Println("End live stream request received.")
 	rs.videoStreamRequest.requested <- false
 	return &pb.EmptyVideoResponse{}, nil
 }
 
-//keep sending the video_stream_request state to de1
+// RequestToStream Is a persistent connection that relays when a stream has been requested by the client
 func (rs *routeServer) RequestToStream(stream pb.VideoRoute_RequestToStreamServer) error {
 	for {
 		var req bool
