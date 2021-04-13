@@ -14,18 +14,8 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 )
 
-type Frame struct {
-	number    int
-	data      []byte
-	lastChunk bool
-}
-
-const (
-	permWaiting = 0x01
-	permAllow   = 0x02
-	permDeny    = 0x03
-)
-
+// routeServer The grpc server struct which stores all information
+// needed by grpc functions
 type routeServer struct {
 	pb.UnimplementedRouteServer
 	pb.UnimplementedVideoRouteServer
@@ -40,6 +30,7 @@ type routeServer struct {
 	unlockDoorRequest  UnlockDoorRequest
 }
 
+// Load the grpc server struct and start the server
 func main() {
 	environ := environment.Env{}
 	environ.ReadEnv()

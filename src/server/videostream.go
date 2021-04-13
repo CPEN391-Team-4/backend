@@ -17,6 +17,12 @@ import (
 // Number of VideoStreams Frame channels kept
 const VIDEOSTREAM_SIZE = 16
 
+type Frame struct {
+	number    int
+	data      []byte
+	lastChunk bool
+}
+
 // Map of device ids to associated streams
 type VideoStreams struct {
 	sync.Mutex
