@@ -18,15 +18,23 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+
+// Table for user storage
 const USERS_TABLE = "users"
+
+// Size for bufferr when reading data
 const READ_BUF_SIZE = 4086
 
+// User representation in database
 type User struct {
 	name       string
 	image_id   string
 	restricted bool
 }
 
+/********************* DATABASE *********************/
+
+// addUserToDB Add a user to the USERS_TABLE
 func (rs *routeServer) addUserToDB(name string, image_id string, restricted bool) error {
 	restrict_int := 0
 	if restricted {
@@ -39,6 +47,7 @@ func (rs *routeServer) addUserToDB(name string, image_id string, restricted bool
 	return err
 }
 
+// updateUserInDB Add a user in the USERS_TABLE
 func (rs *routeServer) updateUserInDB(name string, image_id string, restricted bool) error {
 	restrict_int := 0
 	if restricted {
@@ -52,6 +61,7 @@ func (rs *routeServer) updateUserInDB(name string, image_id string, restricted b
 	return err
 }
 
+// getAllUsersFromDB Retrieve all users in the USERS_TABLE
 func (rs *routeServer) getAllUsersFromDB() ([]User, error) {
 	sql := "SELECT * FROM " + USERS_TABLE
 	results, err := rs.conn.Query(sql)
@@ -74,6 +84,7 @@ func (rs *routeServer) getAllUsersFromDB() ([]User, error) {
 	return users, nil
 }
 
+// getAllUserNameFromDB Retrieve all user names in the USERS_TABLE
 func (rs *routeServer) getAllUserNameFromDB() ([]string, error) {
 	var userNames []string
 	userNames = make([]string, 0)
@@ -89,6 +100,7 @@ func (rs *routeServer) getAllUserNameFromDB() ([]string, error) {
 	return userNames, nil
 }
 
+// getUserFromDB Retrieve a specific user from the USERS_TABLE
 func (rs *routeServer) getUserFromDB(user string) (User, error) {
 	sql := fmt.Sprintf("SELECT * FROM %s WHERE name = '%s';", USERS_TABLE, user)
 	results, err := rs.conn.Query(sql)
@@ -109,16 +121,17 @@ func (rs *routeServer) getUserFromDB(user string) (User, error) {
 	return User{}, status.Errorf(codes.Unknown, "No user %s found", user)
 }
 
+// removeUserInDB Remove a specific user from the USERS_TABLE
 func (rs *routeServer) removeUserInDB(name string) error {
 	sql := fmt.Sprintf("DELETE FROM `%s` WHERE name = '%s';", USERS_TABLE, name)
 	_, err := rs.conn.Exec(sql)
 	return err
 }
 
-func (rs *routeServer) AddTrustedUser(stream pb.Route_AddTrustedUserServer) error {
-	// Referenced: dev.to/techschoolguru/
-	//             upload-file-in-chunks-with-client-streaming-grpc-golang-4loc
+/********************* USER API CALLS *********************/
 
+// AddTrustedUser Receives a user, along with a stream of image data to be associated with them
+func (rs *routeServer) AddTrustedUser(stream pb.Route_AddTrustedUserServer) error {
 	imgBytes := bytes.Buffer{}
 	var user *pb.User
 	imageSize := 0
@@ -158,6 +171,7 @@ func (rs *routeServer) AddTrustedUser(stream pb.Route_AddTrustedUserServer) erro
 
 	var id string
 	var err error
+
 	if imageSize != 0 {
 		fw := imagestore.FileWriter{Directory: rs.imagestore}
 		id, err = fw.Save("."+user.GetPhoto().FileExtension, imgBytes)
@@ -173,10 +187,9 @@ func (rs *routeServer) AddTrustedUser(stream pb.Route_AddTrustedUserServer) erro
 	return stream.SendAndClose(&pb.Empty{})
 }
 
+// AddTrustedUser Receives an existing user to update, along with a stream of image data
+// to be associated with them
 func (rs *routeServer) UpdateTrustedUser(stream pb.Route_UpdateTrustedUserServer) error {
-	// Referenced: dev.to/techschoolguru/
-	//             upload-file-in-chunks-with-client-streaming-grpc-golang-4loc
-
 	imgBytes := bytes.Buffer{}
 	var user *pb.User
 	imageSize := 0
@@ -239,17 +252,18 @@ func (rs *routeServer) UpdateTrustedUser(stream pb.Route_UpdateTrustedUserServer
 	return stream.SendAndClose(&pb.Empty{})
 }
 
+// GetAllUserNames Retrieves all usernames from the database and returns the list to the client
 func (rs *routeServer) GetAllUserNames(context.Context, *pb.Empty) (*pb.UserNames, error) {
 	allUserNames, err := rs.getAllUserNameFromDB()
 	if err != nil {
-		fmt.Println(err)
-		return nil, err
+		return nil, logging.LogError(err)
 	}
 	return &pb.UserNames{
 		Usernames: allUserNames,
 	}, nil
 }
 
+// RemoveTrustedUser Removes a specific user from the database, as well as any images
 func (rs *routeServer) RemoveTrustedUser(ctx context.Context, user *pb.User) (*pb.Empty, error) {
 	u, err := rs.getUserFromDB(user.GetName())
 	if err != nil {
@@ -268,6 +282,7 @@ func (rs *routeServer) RemoveTrustedUser(ctx context.Context, user *pb.User) (*p
 	return &pb.Empty{}, err
 }
 
+// GetUserPhoto Streams the photo for a specific user to the client
 func (rs *routeServer) GetUserPhoto(user *pb.User, stream pb.Route_GetUserPhotoServer) error {
 	if len(user.GetName()) == 0 {
 		return status.Errorf(codes.Unknown, "User name not provided")
@@ -310,6 +325,6 @@ func (rs *routeServer) GetUserPhoto(user *pb.User, stream pb.Route_GetUserPhotoS
 		}
 		sizeTotal += n
 	}
-	fmt.Println("Sent %d bytes", sizeTotal)
+
 	return nil
 }
