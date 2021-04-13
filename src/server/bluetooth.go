@@ -38,6 +38,7 @@ func (rs *routeServer) GetDe1ID(ctx context.Context, in *pb.MainUser) (*pb.Bluet
 	return info, nil
 }
 
+//add the username and the de1device id into the bluetooth table
 func (rs *routeServer) addBlueinfoTODB(username string, de1id string) error {
 	sql_q := fmt.Sprintf(
 		"INSERT INTO `%s` (username, de1id ) VALUES ('%s', '%s');",
@@ -50,6 +51,7 @@ func (rs *routeServer) addBlueinfoTODB(username string, de1id string) error {
 	return err
 }
 
+//by giving the username, get the device id of that username.
 func (rs *routeServer) getDe1IDFromDB(username string) (string, error) {
 	sql_q := "SELECT de1id FROM " + BlueToothTable + " where username = " + "'" + username + "'"
 	fmt.Println(sql_q)

@@ -4,11 +4,12 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/CPEN391-Team-4/backend/src/logging"
 	"io"
 	"log"
 	"os"
 	"time"
+
+	"github.com/CPEN391-Team-4/backend/src/logging"
 
 	pb "github.com/CPEN391-Team-4/backend/pb/proto"
 	_ "github.com/go-sql-driver/mysql"
@@ -72,6 +73,7 @@ func (rs *routeServer) GetHistoryImage(imageuuid *pb.ImageLocation, stream pb.Ro
 
 	var photo pb.Photo
 
+	// send the image by stream
 	sizeTotal := 0
 	for {
 		n, err := reader.Read(buf)
@@ -93,6 +95,7 @@ func (rs *routeServer) GetHistoryImage(imageuuid *pb.ImageLocation, stream pb.Ro
 	return nil
 }
 
+//delete the history records
 func (rs *routeServer) DeleteRecords(ctx context.Context, imageid *pb.ImageLocation) (*pb.Empty, error) {
 	var err error
 	err = rs.DeleteRecordFromDB(imageid.Address)
@@ -102,6 +105,7 @@ func (rs *routeServer) DeleteRecords(ctx context.Context, imageid *pb.ImageLocat
 	return &pb.Empty{}, err
 }
 
+//get the most resented stored image in the history table
 func (rs *routeServer) GetLatestImage(_ *pb.Empty, stream pb.Route_GetLatestImageServer) error {
 	var err error
 	imageid, err := rs.GetLatestRecordImageID()
@@ -147,6 +151,7 @@ func (rs *routeServer) GetLatestImage(_ *pb.Empty, stream pb.Route_GetLatestImag
 //.
 //All the functions for the communication between server to database for history record part.
 
+//add a history record entry into the history table
 func (rs *routeServer) AddRecordToDB(name string, imageLocation string) (int64, error) {
 
 	loc, err := time.LoadLocation(timeZone)
@@ -170,6 +175,7 @@ func (rs *routeServer) AddRecordToDB(name string, imageLocation string) (int64, 
 	return lastInsertId, err
 }
 
+// update the access status in the history table
 func (rs *routeServer) UpdateRecordStatusToDB(id int64, status string) error {
 	sql_q := fmt.Sprintf(
 		"UPDATE `%s` SET status = '%s' where id = '%d';",
@@ -179,6 +185,7 @@ func (rs *routeServer) UpdateRecordStatusToDB(id int64, status string) error {
 	return err
 }
 
+// By providing the time interval, we can get all the history record within this time interval
 func (rs *routeServer) GetHisRecDBbyTime(starttime string, endtime string) ([]Record, error) {
 	sql_q := "SELECT * FROM " + HistoryTable + " WHERE time between ? and ?"
 	res, err := rs.conn.Query(sql_q, starttime, endtime)
@@ -201,6 +208,7 @@ func (rs *routeServer) GetHisRecDBbyTime(starttime string, endtime string) ([]Re
 	return records, err
 }
 
+// delete a certain history record in the history table
 func (rs *routeServer) DeleteRecordFromDB(imagelocation string) error {
 	sql_q := fmt.Sprintf(
 		"DELETE FROM `%s` WHERE  ImageLocation ='%s';", HistoryTable, imagelocation)
@@ -208,6 +216,7 @@ func (rs *routeServer) DeleteRecordFromDB(imagelocation string) error {
 	return err
 }
 
+// clear all the history record in the history table
 func (rs *routeServer) ClearHistoryRecord() error {
 	sql_q := fmt.Sprintf(
 		"DELETE FROM `%s` WHERE id > 0;", HistoryTable)
@@ -215,6 +224,7 @@ func (rs *routeServer) ClearHistoryRecord() error {
 	return err
 }
 
+//  get the most resent history record image location.
 func (rs *routeServer) GetLatestRecordImageID() (string, error) {
 	res, err := rs.conn.Query("SELECT ImageLocation FROM " + HistoryTable + " ORDER BY id DESC LIMIT 1")
 	imageid := ""
