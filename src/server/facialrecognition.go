@@ -198,6 +198,7 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 	fmt.Println("Finishing verify face.")
 
 	if resp.User != "" {
+		resp.Accept = true
 		recordID, err := rs.AddRecordToDB(dbuser, imgId)
 		if err != nil {
 			return logging.LogError(status.Errorf(codes.Internal, "cannot add record to db: %v", err))
