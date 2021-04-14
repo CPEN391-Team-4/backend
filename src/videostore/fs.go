@@ -17,7 +17,7 @@ type FileWriter struct {
 	Directory string
 }
 
-// Save Save a file under <FileWriter.Directory>/<frameNum>.jpg
+// Save: Save a file under <FileWriter.Directory>/<frameNum>.jpg
 func (fw *FileWriter) Save(dir string, frameNum int, data bytes.Buffer) (string, error) {
 	subPath := dir + "/" + strconv.Itoa(frameNum) + ".jpg"
 	path := fw.Directory + "/" + subPath
