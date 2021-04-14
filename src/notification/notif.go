@@ -9,6 +9,7 @@ import (
 	"google.golang.org/api/option"
 )
 
+// Send: Send a push notification to tok
 func Send(tok string, title string, body string, credentialsFile string) (string, error) {
 	opt := option.WithCredentialsFile(credentialsFile)
 	app, err := firebase.NewApp(context.Background(), nil, opt)
