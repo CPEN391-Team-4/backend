@@ -405,7 +405,9 @@ func main() {
 	defer cancel()
 
 	if len(os.Args) < 2 {
-		fmt.Println("expected subcommand 'verifyface' | 'addUser' | 'listusers' | 'streamvideo' | 'requeststream'")
+		fmt.Println("expected subcommand " +
+			"'verifyface' | 'addUser' | 'listusers' | 'streamvideo' | 'requeststream' 'reqtolock' | " +
+			" 'pullvideo' | 'sendpullvideo' | 'reqtostream'")
 		os.Exit(1)
 	}
 

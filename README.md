@@ -2,30 +2,22 @@
 
 A gRPC based api.
 
-## Protobuf Generation
+For setup information see [SERVER_SETUP](docs/SERVER_SETUP.md)
+
+## Building
 
 ```shell
-export GO111MODULE=on 
-go get google.golang.org/protobuf/cmd/protoc-gen-go \
-         google.golang.org/grpc/cmd/protoc-gen-go-grpc
-
-export PATH="$PATH:$(go env GOPATH)/bin"
-
-protoc --go_out=pb --go_opt=paths=source_relative \
-    --go-grpc_out=pb --go-grpc_opt=paths=source_relative \
-    proto/*.proto
+GOBIN="$PWD" make
 ```
 
-## DB
+## Running
 
-Setup MySQL/MariaDB
+* Setup MySQL and import `db/schema.sql`.
+* Set all environment variables in `.env.example`
+* Run `server`
 
-Create user and database:
+## Tests
 
-```sql
-CREATE USER 'cpen391'@'localhost' IDENTIFIED BY '******';
-CREATE DATABASE cpen391_backend;
-GRANT ALL PRIVILEGES ON cpen391_backend.* TO 'cpen391'@'localhost';
-```
+Client tests are in `src/clienttests/test.go`
 
-For schema, see `db/schema.sql`
+Based on the test, pass the appropriate subcommand and arguments.
