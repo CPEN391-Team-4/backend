@@ -19,8 +19,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const userTimeout = 120
-
+// verifyFace Make the call to the facial recognition API comparing face0 and faceBuffer
 func (rs *routeServer) verifyFace(face0 *os.File, faceBuffer *bytes.Buffer) (*face.VerifyResult, error) {
 
 	// A global context for use in all samples
@@ -76,6 +75,7 @@ type VerifyFaceResult struct {
 	err    error
 }
 
+// verifyFaceAsync Make a call in a go routine to the facial recognition API and return the channel
 func (rs *routeServer) verifyFaceAsync(user User, faceBuffer *bytes.Buffer) <-chan VerifyFaceResult {
 	r := make(chan VerifyFaceResult)
 	go func() {
@@ -107,6 +107,9 @@ func (rs *routeServer) verifyFaceAsync(user User, faceBuffer *bytes.Buffer) <-ch
 	return r
 }
 
+// VerifyUserFace Make a call to the face recognition API and compare every user in the database in
+// order to find a match.
+// Send a notification of whether or a user is matched or if a stranger is found
 func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) error {
 	imgBytes := bytes.Buffer{}
 	imageSize := 0
@@ -153,6 +156,7 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 		return logging.LogError(status.Errorf(codes.Internal, "cannot save image: %v", err))
 	}
 
+	// Call face verification in parallel for all users
 	var resp pb.FaceVerificationResp
 	users, err := rs.getAllUsersFromDB()
 	if err != nil {
@@ -172,7 +176,6 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 	foundFace := false
 
 	var highestConf *face.VerifyResult = nil
-
 	for i, user := range users {
 		res := <-resChan[i]
 		if res.err != nil {
@@ -183,7 +186,6 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 		}
 		foundFace = true
 		if *res.result.IsIdentical {
-			fmt.Println("IsIdentical user=", user.name)
 			if highestConf == nil || *highestConf.Confidence <= *res.result.Confidence {
 				highestConf = res.result
 				dbuser = user.name
@@ -191,13 +193,10 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 				resp.Confidence = float32(*res.result.Confidence)
 			}
 		}
-
-		fmt.Println("user=", user.name, "conf=", *res.result.Confidence, "imageid=", user.image_id)
 	}
 
-	fmt.Println("Finishing verify face.")
-
 	if resp.User != "" {
+		// Notify trusted
 		resp.Accept = true
 		recordID, err := rs.AddRecordToDB(dbuser, imgId)
 		if err != nil {
@@ -220,6 +219,7 @@ func (rs *routeServer) VerifyUserFace(stream pb.Route_VerifyUserFaceServer) erro
 			return err
 		}
 	} else if foundFace {
+		// Notify found a face, but nottrusted
 		recordID, err := rs.AddRecordToDB("Stranger", imgId)
 		if err != nil {
 			return logging.LogError(status.Errorf(codes.Internal, "cannot add record to db: %v", err))
