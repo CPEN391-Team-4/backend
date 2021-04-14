@@ -4,24 +4,26 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	pb "github.com/CPEN391-Team-4/backend/pb/proto"
+	"github.com/CPEN391-Team-4/backend/src/logging"
 	"io"
 	"log"
 	"os"
 	"time"
 
-	"github.com/CPEN391-Team-4/backend/src/logging"
-
-	pb "github.com/CPEN391-Team-4/backend/pb/proto"
 	_ "github.com/go-sql-driver/mysql"
 )
 
+// Table for history storage
 const HistoryTable = "history_table"
 
-const WaitedGuest = "Stranger"
-
+// Time zone to be used in the database
 const timeZone = "Local"
+
+// Format for date stamps stored in the database
 const timeFormat = "2006-01-02 03:04:05"
 
+// Representation of a history record as stored in the database
 type Record struct {
 	Id            int64
 	Name          string
@@ -30,11 +32,99 @@ type Record struct {
 	Time          string
 }
 
-//.
-//.
-//.
-//.
-//All the grpc functions for the app to server for the history record part
+/********************* DATABASE *********************/
+
+// AddRecordToDB Add a history record entry into HistoryTable
+func (rs *routeServer) AddRecordToDB(name string, imageLocation string) (int64, error) {
+
+	loc, err := time.LoadLocation(timeZone)
+	if err != nil {
+		return 0, err
+	}
+
+	dt := time.Now().In(loc)
+	recordTime := dt.Format(timeFormat)
+
+	sql_q := fmt.Sprintf(
+		"INSERT INTO `%s` (name, status, ImageLocation, time) VALUES ('%s', '%s', '%s', '%s');",
+		HistoryTable, name, "unknown", imageLocation, recordTime)
+	res, err := rs.conn.Exec(sql_q)
+	if err != nil {
+		return 0, err
+	}
+
+	lastInsertId, err := res.LastInsertId()
+
+	return lastInsertId, err
+}
+
+// UpdateRecordStatusToDB Update the status for record with id
+func (rs *routeServer) UpdateRecordStatusToDB(id int64, status string) error {
+	sql_q := fmt.Sprintf(
+		"UPDATE `%s` SET status = '%s' where id = '%d';",
+		HistoryTable, status, id)
+	_, err := rs.conn.Exec(sql_q)
+
+	return err
+}
+
+// GetHisRecDBbyTime Get all records between starttime and endtime
+func (rs *routeServer) GetHisRecDBbyTime(starttime string, endtime string) ([]Record, error) {
+	sql_q := "SELECT * FROM " + HistoryTable + " WHERE time between ? and ?"
+	res, err := rs.conn.Query(sql_q, starttime, endtime)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var records []Record
+
+	for res.Next() {
+		var record Record
+		err = res.Scan(&record.Id, &record.Name, &record.Status, &record.ImageLocation, &record.Time)
+		if err != nil {
+			panic(err.Error())
+		}
+		records = append(records, record)
+	}
+
+	return records, err
+}
+
+// DeleteRecordFromDB Delete the record of the image at imagelocation
+func (rs *routeServer) DeleteRecordFromDB(imagelocation string) error {
+	sql_q := fmt.Sprintf(
+		"DELETE FROM `%s` WHERE  ImageLocation ='%s';", HistoryTable, imagelocation)
+	_, err := rs.conn.Exec(sql_q)
+	return err
+}
+
+// ClearHistoryRecord Delete all from HistoryTable
+func (rs *routeServer) ClearHistoryRecord() error {
+	sql_q := fmt.Sprintf(
+		"DELETE FROM `%s` WHERE id > 0;", HistoryTable)
+	_, err := rs.conn.Exec(sql_q)
+	return err
+}
+
+// GetLatestRecordImageID Get the id of the latest image in HistoryTable
+func (rs *routeServer) GetLatestRecordImageID() (string, error) {
+	res, err := rs.conn.Query("SELECT ImageLocation FROM " + HistoryTable + " ORDER BY id DESC LIMIT 1")
+	imageid := ""
+	if err != nil {
+		return "", err
+	}
+	for res.Next() {
+		err = res.Scan(&imageid)
+	}
+
+	return imageid, err
+
+}
+
+/********************* HISTORY API *********************/
+
+// GetHistoryRecorded Retrieve all history between timestamp.Starttime and timestamp.Endtime
 func (rs *routeServer) GetHistoryRecorded(ctx context.Context, timestamp *pb.Timestamp) (*pb.HistoryRecords, error) {
 	var err error
 	var recordList pb.HistoryRecords
@@ -43,7 +133,6 @@ func (rs *routeServer) GetHistoryRecorded(ctx context.Context, timestamp *pb.Tim
 		return &recordList, err
 	}
 
-	//loop through every records in the records list
 	for _, rec := range records {
 		var record pb.HistoryRecord
 		record.Name = rec.Name
@@ -53,11 +142,10 @@ func (rs *routeServer) GetHistoryRecorded(ctx context.Context, timestamp *pb.Tim
 
 		recordList.Record = append(recordList.Record, &record)
 	}
-	fmt.Println(recordList)
 	return &recordList, err
 }
 
-//get history image from the ImageStore
+//GetHistoryImage Retrieve a history image from the ImageStore
 func (rs *routeServer) GetHistoryImage(imageuuid *pb.ImageLocation, stream pb.Route_GetHistoryImageServer) error {
 	file := rs.imagestore + "/" + imageuuid.Address
 	f, err := os.Open(file)
@@ -73,7 +161,6 @@ func (rs *routeServer) GetHistoryImage(imageuuid *pb.ImageLocation, stream pb.Ro
 
 	var photo pb.Photo
 
-	// send the image by stream
 	sizeTotal := 0
 	for {
 		n, err := reader.Read(buf)
@@ -95,7 +182,7 @@ func (rs *routeServer) GetHistoryImage(imageuuid *pb.ImageLocation, stream pb.Ro
 	return nil
 }
 
-//delete the history records
+// DeleteRecords Delete the record at imageid.Address
 func (rs *routeServer) DeleteRecords(ctx context.Context, imageid *pb.ImageLocation) (*pb.Empty, error) {
 	var err error
 	err = rs.DeleteRecordFromDB(imageid.Address)
@@ -105,7 +192,7 @@ func (rs *routeServer) DeleteRecords(ctx context.Context, imageid *pb.ImageLocat
 	return &pb.Empty{}, err
 }
 
-//get the most resented stored image in the history table
+// DeleteRecords Delete the record at imageid.Address
 func (rs *routeServer) GetLatestImage(_ *pb.Empty, stream pb.Route_GetLatestImageServer) error {
 	var err error
 	imageid, err := rs.GetLatestRecordImageID()
@@ -143,98 +230,4 @@ func (rs *routeServer) GetLatestImage(_ *pb.Empty, stream pb.Route_GetLatestImag
 	log.Printf("Sent %d bytes\n", sizeTotal)
 
 	return err
-}
-
-//.
-//.
-//.
-//.
-//All the functions for the communication between server to database for history record part.
-
-//add a history record entry into the history table
-func (rs *routeServer) AddRecordToDB(name string, imageLocation string) (int64, error) {
-
-	loc, err := time.LoadLocation(timeZone)
-	if err != nil {
-		return 0, err
-	}
-
-	dt := time.Now().In(loc)
-	recordTime := dt.Format(timeFormat)
-
-	sql_q := fmt.Sprintf(
-		"INSERT INTO `%s` (name, status, ImageLocation, time) VALUES ('%s', '%s', '%s', '%s');",
-		HistoryTable, name, "unknown", imageLocation, recordTime)
-	res, err := rs.conn.Exec(sql_q)
-	if err != nil {
-		return 0, err
-	}
-
-	lastInsertId, err := res.LastInsertId()
-
-	return lastInsertId, err
-}
-
-// update the access status in the history table
-func (rs *routeServer) UpdateRecordStatusToDB(id int64, status string) error {
-	sql_q := fmt.Sprintf(
-		"UPDATE `%s` SET status = '%s' where id = '%d';",
-		HistoryTable, status, id)
-	_, err := rs.conn.Exec(sql_q)
-
-	return err
-}
-
-// By providing the time interval, we can get all the history record within this time interval
-func (rs *routeServer) GetHisRecDBbyTime(starttime string, endtime string) ([]Record, error) {
-	sql_q := "SELECT * FROM " + HistoryTable + " WHERE time between ? and ?"
-	res, err := rs.conn.Query(sql_q, starttime, endtime)
-
-	if err != nil {
-		return nil, err
-	}
-
-	var records []Record
-
-	for res.Next() {
-		var record Record
-		err = res.Scan(&record.Id, &record.Name, &record.Status, &record.ImageLocation, &record.Time)
-		if err != nil {
-			panic(err.Error())
-		}
-		records = append(records, record)
-	}
-
-	return records, err
-}
-
-// delete a certain history record in the history table
-func (rs *routeServer) DeleteRecordFromDB(imagelocation string) error {
-	sql_q := fmt.Sprintf(
-		"DELETE FROM `%s` WHERE  ImageLocation ='%s';", HistoryTable, imagelocation)
-	_, err := rs.conn.Exec(sql_q)
-	return err
-}
-
-// clear all the history record in the history table
-func (rs *routeServer) ClearHistoryRecord() error {
-	sql_q := fmt.Sprintf(
-		"DELETE FROM `%s` WHERE id > 0;", HistoryTable)
-	_, err := rs.conn.Exec(sql_q)
-	return err
-}
-
-//  get the most resent history record image location.
-func (rs *routeServer) GetLatestRecordImageID() (string, error) {
-	res, err := rs.conn.Query("SELECT ImageLocation FROM " + HistoryTable + " ORDER BY id DESC LIMIT 1")
-	imageid := ""
-	if err != nil {
-		return "", err
-	}
-	for res.Next() {
-		err = res.Scan(&imageid)
-	}
-
-	return imageid, err
-
 }
