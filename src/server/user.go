@@ -27,6 +27,7 @@ type User struct {
 	restricted bool
 }
 
+//add a trusted user into the user table
 func (rs *routeServer) addUserToDB(name string, image_id string, restricted bool) error {
 	restrict_int := 0
 	if restricted {
@@ -39,6 +40,7 @@ func (rs *routeServer) addUserToDB(name string, image_id string, restricted bool
 	return err
 }
 
+// update a user info in the user table
 func (rs *routeServer) updateUserInDB(name string, image_id string, restricted bool) error {
 	restrict_int := 0
 	if restricted {
@@ -52,6 +54,7 @@ func (rs *routeServer) updateUserInDB(name string, image_id string, restricted b
 	return err
 }
 
+//get all the trusted users' info from the table
 func (rs *routeServer) getAllUsersFromDB() ([]User, error) {
 	sql := "SELECT * FROM " + USERS_TABLE
 	results, err := rs.conn.Query(sql)
@@ -74,6 +77,7 @@ func (rs *routeServer) getAllUsersFromDB() ([]User, error) {
 	return users, nil
 }
 
+//get all the trusted users' name from the table
 func (rs *routeServer) getAllUserNameFromDB() ([]string, error) {
 	var userNames []string
 	userNames = make([]string, 0)
@@ -89,6 +93,7 @@ func (rs *routeServer) getAllUserNameFromDB() ([]string, error) {
 	return userNames, nil
 }
 
+//get a certain user info from the user table
 func (rs *routeServer) getUserFromDB(user string) (User, error) {
 	sql := fmt.Sprintf("SELECT * FROM %s WHERE name = '%s';", USERS_TABLE, user)
 	results, err := rs.conn.Query(sql)
@@ -109,12 +114,14 @@ func (rs *routeServer) getUserFromDB(user string) (User, error) {
 	return User{}, status.Errorf(codes.Unknown, "No user %s found", user)
 }
 
+//remove a trusted user in the user table
 func (rs *routeServer) removeUserInDB(name string) error {
 	sql := fmt.Sprintf("DELETE FROM `%s` WHERE name = '%s';", USERS_TABLE, name)
 	_, err := rs.conn.Exec(sql)
 	return err
 }
 
+// A grpc call to add a trusted user into the server
 func (rs *routeServer) AddTrustedUser(stream pb.Route_AddTrustedUserServer) error {
 	// Referenced: dev.to/techschoolguru/
 	//             upload-file-in-chunks-with-client-streaming-grpc-golang-4loc
