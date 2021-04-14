@@ -2,6 +2,7 @@ package environment
 
 import "os"
 
+// Holds environment variables used by server
 type Env struct {
 	DbUri               string
 	Db                  string
@@ -13,6 +14,7 @@ type Env struct {
 	FirebaseKeyfile     string
 }
 
+// ReadEnv Reads all environment variables used by server into an Env
 func (e *Env) ReadEnv() {
 	e.DbUri = os.Getenv("DB_URI")
 	e.Db = os.Getenv("DB")
