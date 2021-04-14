@@ -5,21 +5,23 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"io/fs"
+	"log"
 	"os"
 	"strconv"
 )
 
-// rwx rwx r-x
+// Directory permissions: rwx rwx r-x
 const DIR_PERM = 0775
 
 type FileWriter struct {
 	Directory string
 }
 
+// Save Save a file under <FileWriter.Directory>/<frameNum>.jpg
 func (fw *FileWriter) Save(dir string, frameNum int, data bytes.Buffer) (string, error) {
 	subPath := dir + "/" + strconv.Itoa(frameNum) + ".jpg"
 	path := fw.Directory + "/" + subPath
-	fmt.Println("Saving file to", path)
+	log.Println("Saving file to", path)
 
 	file, err := os.Create(path)
 	if err != nil {
@@ -33,6 +35,8 @@ func (fw *FileWriter) Save(dir string, frameNum int, data bytes.Buffer) (string,
 
 	return subPath, nil
 }
+
+// RemoveSubdir Remove a subdirectory recursively under FileWriter.Directory
 func (fw *FileWriter) RemoveSubdir(id string) error {
 	err := os.RemoveAll(fw.Directory + "/" + id)
 	if err != nil {
@@ -41,6 +45,7 @@ func (fw *FileWriter) RemoveSubdir(id string) error {
 	return nil
 }
 
+// CreateSubdir Create a subdirectory under FileWriter.Directory
 func (fw *FileWriter) CreateSubdir() (string, error) {
 	id, err := uuid.NewRandom()
 	if err != nil {
